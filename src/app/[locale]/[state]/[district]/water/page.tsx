@@ -46,7 +46,7 @@ function WaterPageInner({ params }: { params: Promise<{ locale: string; state: s
       </ModuleHeader>
 
       {/* AI-crawler readable summary */}
-      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", borderRadius: 8, borderLeft: "3px solid #2563EB" }}>
+      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", border: "1px solid #E8E8E4", borderRadius: 8 }}>
         This page shows live dam storage levels and canal release schedules for this district, updated every 30 minutes from India-WRIS (Water Resources Information System). Storage levels are shown as a percentage of total capacity. Data includes reservoir inflow, outflow, and current storage levels for dams and reservoirs serving this district.
       </p>
       {(() => { const _src = getModuleSources("water", state); return <DataSourceBanner moduleName="water" sources={_src.sources} updateFrequency={_src.frequency} isLive={_src.isLive} />; })()}

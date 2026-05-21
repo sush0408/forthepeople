@@ -56,7 +56,7 @@ function SchoolsPageInner({ params }: { params: Promise<{ locale: string; state:
       <ModuleHeader icon={GraduationCap} title="Schools" description="School directory, student-teacher ratios, and exam pass rates" backHref={base} />
 
       {/* AI-crawler readable summary */}
-      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", borderRadius: 8, borderLeft: "3px solid #16A34A" }}>
+      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", border: "1px solid #E8E8E4", borderRadius: 8 }}>
         This page shows school-level data for this district including Class 10 board exam pass rates, student enrollment, teacher count, and student-teacher ratios. Data is sourced from UDISE+ (Unified District Information System for Education). Government and private school data is from the National School Directory.
       </p>
       {(() => { const _src = getModuleSources("schools", state); return <DataSourceBanner moduleName="schools" sources={_src.sources} updateFrequency={_src.frequency} isLive={_src.isLive} />; })()}

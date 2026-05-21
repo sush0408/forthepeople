@@ -9,8 +9,10 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Plus, Save, Trash2 } from "lucide-react";
 import type { CostBreakdownItem, HelpItem, SupportPageContent } from "@/lib/support-defaults";
+import { inferLocaleFromPathname, withLocalePath } from "@/lib/locale-routing";
 
 type Loaded = SupportPageContent & { updatedAt: string | null };
 
@@ -54,6 +56,8 @@ const smallBtn: React.CSSProperties = {
 };
 
 export default function SupportPageEditor() {
+  const pathname = usePathname();
+  const locale = inferLocaleFromPathname(pathname);
   const [data, setData] = useState<Loaded | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -80,7 +84,11 @@ export default function SupportPageEditor() {
   }, []);
 
   useEffect(() => {
-    load();
+    const timeoutId = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [load]);
 
   function updateField<K extends keyof SupportPageContent>(key: K, value: SupportPageContent[K]) {
@@ -156,8 +164,8 @@ export default function SupportPageEditor() {
           Support Page Editor
         </h1>
         <p style={{ fontSize: 13, color: "#6B6B6B", marginTop: 6 }}>
-          Edit bio, photo, cost breakdown, and "other ways to help" items on{" "}
-          <a href="/en/support" target="_blank" rel="noopener noreferrer" style={{ color: "#2563EB" }}>/support</a>.
+          Edit bio, photo, cost breakdown, and &quot;other ways to help&quot; items on{" "}
+          <a href={withLocalePath(locale, "/support")} target="_blank" rel="noopener noreferrer" style={{ color: "#2563EB" }}>/support</a>.
           Changes save to the DB and take effect on next page load.
         </p>
       </div>

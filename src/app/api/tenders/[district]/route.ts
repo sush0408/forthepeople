@@ -12,7 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { resolveDistrictName, serializeForJson } from "@/lib/tenders/tender-helpers";
+import { resolveActiveTenderDistrictIdentity, serializeForJson } from "@/lib/tenders/tender-helpers";
 import type { Prisma } from "@/generated/prisma";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +22,9 @@ export async function GET(
   ctx: { params: Promise<{ district: string }> },
 ) {
   const { district: districtSlug } = await ctx.params;
-  const districtName = await resolveDistrictName(districtSlug);
-  if (!districtName) {
+  const stateSlug = new URL(req.url).searchParams.get("state");
+  const district = await resolveActiveTenderDistrictIdentity(districtSlug, stateSlug);
+  if (!district) {
     return NextResponse.json({ error: { code: "DISTRICT_NOT_ACTIVE", message: `District '${districtSlug}' is not active.` } }, { status: 404 });
   }
 
@@ -34,7 +35,10 @@ export async function GET(
   const sortBy = searchParams.get("sortBy") ?? "deadline";
   const search = searchParams.get("search")?.trim();
 
-  const where: Prisma.TenderWhereInput = { locationDistrict: districtName };
+  const where: Prisma.TenderWhereInput = {
+    locationDistrict: district.districtName,
+    locationState: district.stateName,
+  };
 
   // Primary status bucket
   const now = new Date();
@@ -93,6 +97,6 @@ export async function GET(
     total,
     page,
     pageSize,
-    districtName,
+    districtName: district.districtName,
   }));
 }

@@ -40,7 +40,7 @@ export default function LeadersSnippet({
   district: string; state: string; base: string;
 }) {
   const { data } = useQuery<ApiResponse>({
-    queryKey: ["district", district, "leaders", "snippet"],
+    queryKey: ["district", state, district, "leaders", "snippet"],
     queryFn: () => fetch(`/api/data/leaders?district=${district}&state=${state}`).then((r) => r.json()),
     staleTime: 5 * 60_000,
   });

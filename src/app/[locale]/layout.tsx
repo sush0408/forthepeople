@@ -9,6 +9,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import DisclaimerBar from "@/components/layout/DisclaimerBar";
 import MigrationBanner from "@/components/layout/MigrationBanner";
+import { getDictionary } from "@/dictionaries";
+import { I18nProvider } from "@/i18n/I18nProvider";
 
 export default async function LocaleLayout({
   children,
@@ -18,14 +20,17 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const dictionary = getDictionary(locale);
 
   return (
-    <QueryProvider>
-      <MigrationBanner />
-      <DisclaimerBar />
-      <Header locale={locale} />
-      {children}
-      <Footer />
-    </QueryProvider>
+    <I18nProvider locale={locale} dictionary={dictionary}>
+      <QueryProvider>
+        <MigrationBanner />
+        <DisclaimerBar />
+        <Header locale={locale} />
+        {children}
+        <Footer />
+      </QueryProvider>
+    </I18nProvider>
   );
 }

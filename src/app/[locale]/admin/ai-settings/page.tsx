@@ -112,7 +112,7 @@ export default function AISettingsPage() {
       </div>
 
       {/* ─── OpenRouter Active Card ─── */}
-      <div style={{ ...cardBase, borderLeft: "4px solid #16A34A" }}>
+      <div style={{ ...cardBase, borderColor: "#BBF7D0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>

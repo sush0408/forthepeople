@@ -38,6 +38,11 @@ export const EMPTY_STATE_MESSAGES: Record<string, EmptyStateConfig> = {
     message: "Budget data is being sourced from the state finance department.",
     icon: "💰",
   },
+  budget: {
+    title: "Budget & Revenue",
+    message: "Budget allocations and revenue collections are being synced from treasury and finance records.",
+    icon: "💰",
+  },
   schools: {
     title: "Schools",
     message: "School performance data is being collected from the state board.",

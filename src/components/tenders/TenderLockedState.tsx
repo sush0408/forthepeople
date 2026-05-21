@@ -13,10 +13,11 @@
 import Link from "next/link";
 import { Lock, ArrowRight, Heart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { withLocalePath } from "@/lib/locale-routing";
+import { buildTenderQueryKey } from "@/lib/tenders/ui";
 
 interface Props {
   locale: string;
-  stateSlug: string;
   stateName: string;
   districtSlug: string;
   districtName: string;
@@ -31,7 +32,6 @@ interface LiveDistrict {
 
 export default function TenderLockedState({
   locale,
-  stateSlug,
   stateName,
   districtSlug,
   districtName,
@@ -39,7 +39,7 @@ export default function TenderLockedState({
   // Fetch other districts that DO have tenders active — this page is the
   // best discovery surface for "what's covered today".
   const { data: liveList } = useQuery<{ districts: LiveDistrict[] }>({
-    queryKey: ["tenders-live-districts"],
+    queryKey: buildTenderQueryKey("live-districts", "all-states", "all-districts"),
     queryFn: () => fetch("/api/tenders/live-districts").then((r) => r.json()),
     staleTime: 5 * 60_000,
   });
@@ -99,7 +99,7 @@ export default function TenderLockedState({
             setup, state-specific disclaimer). Supporters decide where we go next.
           </p>
           <Link
-            href="/support"
+            href={withLocalePath(locale, "/support")}
             style={{
               display: "inline-flex",
               alignItems: "center",

@@ -59,7 +59,7 @@ function CropsPageInner({ params }: { params: Promise<{ locale: string; state: s
 
 
       {/* AI-crawler readable summary */}
-      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", borderRadius: 8, borderLeft: "3px solid #16A34A" }}>
+      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", border: "1px solid #E8E8E4", borderRadius: 8 }}>
         This page shows live agricultural mandi prices for this district, sourced daily from AGMARKNET (Agricultural Marketing Information Network), India&apos;s official government portal for regulated market prices. Prices can be viewed per Kg or per quintal. Data covers all commodities traded at APMC (Agricultural Produce Market Committee) mandis in the district.
       </p>
       {(() => { const _src = getModuleSources("crops", state); return <DataSourceBanner moduleName="crops" sources={_src.sources} updateFrequency={_src.frequency} isLive={_src.isLive} />; })()}

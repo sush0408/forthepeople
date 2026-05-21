@@ -11,8 +11,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { ThumbsUp, CheckCircle, Clock, Zap } from "lucide-react";
+import LocaleLink from "@/components/common/LocaleLink";
 
 interface Feature {
   id: string;
@@ -228,9 +228,9 @@ export default function FeaturesPage() {
       >
         <p style={{ fontSize: 13, color: "#6B6B6B", margin: 0 }}>
           Have a feature idea not listed here?{" "}
-          <Link href="/feedback" style={{ color: "#2563EB", textDecoration: "none" }}>
+          <LocaleLink href="/feedback" style={{ color: "#2563EB", textDecoration: "none" }}>
             Submit feedback →
-          </Link>
+          </LocaleLink>
         </p>
       </div>
     </div>

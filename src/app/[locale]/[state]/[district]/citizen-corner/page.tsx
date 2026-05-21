@@ -177,7 +177,6 @@ export default function CitizenCornerPage({ params }: { params: Promise<{ locale
                       style={{
                         background: "#FFF",
                         border: "1px solid #E8E8E4",
-                        borderLeft: `4px solid ${catColor}`,
                         borderRadius: 12,
                         padding: "14px 16px",
                       }}

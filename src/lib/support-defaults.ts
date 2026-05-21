@@ -54,6 +54,6 @@ export const SUPPORT_DEFAULTS: SupportPageContent = {
     { label: "Star on GitHub", desc: "Help us get visibility — star the repository", url: "https://github.com/jayanthmb14/forthepeople", icon: "⭐", external: true },
     { label: "Share on social media", desc: "Share ForThePeople.in with #OpenDataIndia", url: "https://twitter.com/intent/tweet?text=Check%20out%20ForThePeople.in%20%E2%80%94%20free%20government%20data%20dashboards%20for%20Indian%20districts%20%23OpenDataIndia&url=https://forthepeople.in", icon: "🐦", external: true },
     { label: "Contribute code", desc: "We're open source — PRs welcome on GitHub", url: "https://github.com/jayanthmb14/forthepeople/issues", icon: "💻", external: true },
-    { label: "Send district data", desc: "Know RTI documents or official reports? Share them", url: "/en/feedback", icon: "📊", external: false },
+    { label: "Send district data", desc: "Know RTI documents or official reports? Share them", url: "/feedback", icon: "📊", external: false },
   ],
 };

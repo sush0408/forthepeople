@@ -475,7 +475,7 @@ export default function AlertsAndLogs() {
                 key={alert.id}
                 style={{
                   ...card,
-                  borderLeft: `4px solid ${sideColor}`,
+                  borderColor: sideColor,
                   cursor: "pointer",
                 }}
                 onClick={() => toggleExpand(alert.id)}

@@ -5,22 +5,50 @@
  */
 
 // ═══════════════════════════════════════════════════════════
-// ForThePeople.in — Overview Client Dashboard
+// ForThePeople.in — District Overview Command Center
 // ═══════════════════════════════════════════════════════════
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import type { EChartsOption } from "echarts";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import {
-  MapPin, Users, TreePine, Percent, Activity,
-  BarChart3, Cloud,
-  Shield, ScrollText, AlertTriangle, HardHat, TrendingUp, Newspaper,
+  AlertTriangle,
+  ArrowUpRight,
+  Building2,
+  ChevronRight,
+  Database,
+  Droplets,
+  FileText,
+  HardHat,
+  Home,
+  MapPin,
+  Newspaper,
+  Percent,
+  PiggyBank,
+  Scale,
+  ScrollText,
+  Search,
+  Shield,
+  TreePine,
+  TrendingUp,
+  Users,
+  Wheat,
 } from "lucide-react";
 import {
-  useOverview, useCropPrices, useWeather, useWater,
-  useAlerts, useInfrastructure, useBudget, usePolice, useNews,
+  useOverview,
+  useCropPrices,
+  useWater,
+  useAlerts,
+  useInfrastructure,
+  useBudget,
+  usePolice,
+  useNews,
 } from "@/hooks/useRealtimeData";
 import { SIDEBAR_MODULES } from "@/lib/constants/sidebar-modules";
-import { StatCard, SectionLabel, CardGrid, LoadingShell, LiveBadge, SeverityBadge } from "@/components/district/ui";
+import { StatCard, SectionLabel, LoadingShell, LiveBadge, SeverityBadge } from "@/components/district/ui";
 import EmptyState from "@/components/district/EmptyState";
 import AIInsightCard from "@/components/common/AIInsightCard";
 import { DistrictHealthScoreCard } from "@/components/district/DistrictHealthScoreCard";
@@ -32,7 +60,11 @@ import LeadersSnippet from "@/components/district/LeadersSnippet";
 import PopulationSnippet from "@/components/district/PopulationSnippet";
 import TenderSnippet from "@/components/district/TenderSnippet";
 import LiveElectionBanner from "@/components/district/LiveElectionBanner";
+import { useI18n } from "@/i18n/I18nProvider";
+import type { CropPrice, InfraProject, NewsItem } from "@/hooks/useRealtimeData";
 import type { DistrictBadge } from "@/lib/constants/districts";
+
+const ReactECharts = dynamic(() => import("echarts-for-react"), { ssr: false });
 
 interface Props {
   locale: string;
@@ -55,101 +87,519 @@ interface Props {
   };
 }
 
-// ── Module categories for the overview grid ──────────────
-const MODULE_CATEGORIES = [
+type Tone = "blue" | "green" | "amber" | "red" | "purple" | "slate";
+
+const TONE_STYLES: Record<Tone, { color: string; bg: string; soft: string; border: string }> = {
+  blue: { color: "#2563EB", bg: "#EFF6FF", soft: "#DBEAFE", border: "#BFDBFE" },
+  green: { color: "#16A34A", bg: "#F0FDF4", soft: "#DCFCE7", border: "#BBF7D0" },
+  amber: { color: "#D97706", bg: "#FFFBEB", soft: "#FEF3C7", border: "#FDE68A" },
+  red: { color: "#DC2626", bg: "#FEF2F2", soft: "#FEE2E2", border: "#FECACA" },
+  purple: { color: "#7C3AED", bg: "#F5F3FF", soft: "#EDE9FE", border: "#DDD6FE" },
+  slate: { color: "#475569", bg: "#F8FAFC", soft: "#E2E8F0", border: "#CBD5E1" },
+};
+
+const LIVE_MODULES = new Set(["crops", "weather", "water", "news", "alerts", "power"]);
+const MODULE_MAP = Object.fromEntries(SIDEBAR_MODULES.map((m) => [m.slug, m]));
+
+const MODULE_PATHWAYS: Array<{
+  label: string;
+  intent: string;
+  slugs: string[];
+  icon: LucideIcon;
+  tone: Tone;
+}> = [
   {
-    label: "📊 Live Data",
-    slugs: ["crops", "weather", "water", "population", "police"],
+    label: "Daily life",
+    intent: "Weather, water, power, health, schools and transport.",
+    slugs: ["weather", "water", "jjm", "power", "transport", "health", "schools", "housing"],
+    icon: Home,
+    tone: "blue",
   },
   {
-    label: "🏛️ Governance & Services",
-    slugs: ["leadership", "finance", "schemes", "services", "elections"],
+    label: "Money & projects",
+    intent: "Budgets, infrastructure, tenders and local industry.",
+    slugs: ["finance", "infrastructure", "tenders", "industries"],
+    icon: PiggyBank,
+    tone: "green",
   },
   {
-    label: "🏘️ Community & Infrastructure",
-    slugs: ["transport", "jjm", "housing", "power", "schools"],
+    label: "Accountability",
+    intent: "Officials, police, courts, RTI and local governance.",
+    slugs: ["leadership", "police", "courts", "rti", "file-rti", "gram-panchayat", "update-log"],
+    icon: Scale,
+    tone: "amber",
   },
   {
-    label: "📜 Transparency & Rights",
-    slugs: ["rti", "file-rti", "gram-panchayat", "courts", "health"],
+    label: "Welfare & opportunities",
+    intent: "Schemes, services, exams, jobs and citizen actions.",
+    slugs: ["schemes", "services", "exams", "citizen-corner", "responsibility", "contributors"],
+    icon: ScrollText,
+    tone: "purple",
   },
   {
-    label: "🤝 Local Info",
-    slugs: ["alerts", "offices", "citizen-corner", "famous-personalities", "news"],
+    label: "Local pulse",
+    intent: "Alerts, news, offices, maps, people and source transparency.",
+    slugs: ["alerts", "news", "offices", "map", "famous-personalities", "data-sources"],
+    icon: Newspaper,
+    tone: "red",
   },
   {
-    label: "🏭 Local Economy",
-    slugs: ["industries", "farm", "map", "data-sources", "responsibility"],
+    label: "Agriculture",
+    intent: "Mandi prices, soil advice, irrigation and rural economy.",
+    slugs: ["crops", "farm", "water", "jjm", "gram-panchayat", "industries"],
+    icon: Wheat,
+    tone: "green",
   },
 ];
 
-// Modules with live/frequently-updated data
-const LIVE_MODULES = new Set(["crops", "weather", "water", "news", "alerts", "power"]);
+const CHART_TEXT = "#475569";
+const CHART_GRID = "#E8E8E4";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  agriculture: "#16A34A",
-  water: "#2563EB",
-  politics: "#7C3AED",
-  crime: "#DC2626",
-  health: "#D97706",
-  education: "#0891B2",
-  infrastructure: "#D97706",
-  weather: "#0891B2",
-  economy: "#16A34A",
-};
+function formatINR(value?: number | null) {
+  if (!value) return "—";
+  if (value >= 10_000_000) return `₹${(value / 10_000_000).toFixed(0)} Cr`;
+  if (value >= 100_000) return `₹${(value / 100_000).toFixed(1)}L`;
+  return `₹${value.toLocaleString("en-IN")}`;
+}
+
+function pctColor(value: number) {
+  if (value >= 75) return "#16A34A";
+  if (value >= 45) return "#D97706";
+  return "#DC2626";
+}
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
+  const mins = Math.max(0, Math.floor(diff / 60000));
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+function truncate(text: string, max = 92) {
+  return text.length > max ? `${text.slice(0, max).trim()}...` : text;
+}
+
+function normalizeStatus(status?: string | null) {
+  return (status ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+}
+
+function isActiveProject(project: InfraProject) {
+  const status = normalizeStatus(project.status);
+  return ["ongoing", "active", "under_construction", "in_progress"].includes(status) || status.includes("construction");
+}
+
+function isDelayedProject(project: InfraProject) {
+  const status = normalizeStatus(project.status);
+  return status === "delayed" || status.includes("delay") || (project.delayMonths ?? 0) > 0;
+}
+
+function createGaugeOption(value: number, color: string, label: string): EChartsOption {
+  return {
+    animationDuration: 350,
+    series: [
+      {
+        type: "gauge",
+        min: 0,
+        max: 100,
+        radius: "94%",
+        center: ["50%", "56%"],
+        startAngle: 210,
+        endAngle: -30,
+        progress: {
+          show: true,
+          width: 13,
+          roundCap: true,
+          itemStyle: { color },
+        },
+        axisLine: {
+          roundCap: true,
+          lineStyle: { width: 13, color: [[1, "#EEF2F7"]] },
+        },
+        pointer: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: { show: false },
+        detail: {
+          valueAnimation: true,
+          formatter: "{value}%",
+          color,
+          fontFamily: "var(--font-mono)",
+          fontSize: 26,
+          fontWeight: 800,
+          offsetCenter: [0, "6%"],
+        },
+        title: {
+          show: true,
+          offsetCenter: [0, "42%"],
+          color: CHART_TEXT,
+          fontSize: 11,
+          fontWeight: 600,
+        },
+        data: [{ value: Math.round(value), name: label }],
+      },
+    ],
+  };
+}
+
+function createBudgetOption(allocated: number, spent: number): EChartsOption {
+  return {
+    animationDuration: 700,
+    grid: { left: 6, right: 58, top: 18, bottom: 18, containLabel: true },
+    tooltip: { trigger: "axis" },
+    xAxis: {
+      type: "value",
+      axisLabel: { color: CHART_TEXT, formatter: (v: number) => `₹${Math.round(v / 10_000_000)}Cr` },
+      splitLine: { lineStyle: { color: CHART_GRID } },
+    },
+    yAxis: {
+      type: "category",
+      data: ["Allocated", "Spent"],
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: CHART_TEXT, fontWeight: 600 },
+    },
+    series: [
+      {
+        type: "bar",
+        data: [
+          { value: allocated, itemStyle: { color: "#CBD5E1", borderRadius: [0, 6, 6, 0] } },
+          { value: spent, itemStyle: { color: "#16A34A", borderRadius: [0, 6, 6, 0] } },
+        ],
+        barWidth: 18,
+        label: {
+          show: true,
+          position: "right",
+          color: "#0F172A",
+          formatter: (params) => formatINR(Number(params.value ?? 0)),
+          fontWeight: 700,
+        },
+      },
+    ],
+  };
+}
+
+function createCropOption(crops: CropPrice[]): EChartsOption {
+  const rows = crops.slice(0, 6).map((c) => ({
+    name: c.commodity,
+    value: Math.round(c.modalPrice / 100),
+  }));
+
+  return {
+    animationDuration: 700,
+    grid: { left: 4, right: 48, top: 12, bottom: 10, containLabel: true },
+    tooltip: { trigger: "axis" },
+    xAxis: {
+      type: "value",
+      axisLabel: { color: CHART_TEXT, formatter: (v: number) => `₹${v}` },
+      splitLine: { lineStyle: { color: CHART_GRID } },
+    },
+    yAxis: {
+      type: "category",
+      data: rows.map((r) => r.name),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: CHART_TEXT },
+    },
+    series: [
+      {
+        type: "bar",
+        data: rows.map((r) => r.value),
+        barWidth: 14,
+        itemStyle: { color: "#16A34A", borderRadius: [0, 6, 6, 0] },
+        label: {
+          show: true,
+          position: "right",
+          color: "#166534",
+          fontWeight: 700,
+          formatter: "₹{c}/kg",
+        },
+      },
+    ],
+  };
+}
+
+function createInfraOption(projects: InfraProject[]): EChartsOption {
+  const rows = projects
+    .slice(0, 5)
+    .map((p) => ({
+      name: p.shortName ?? p.name,
+      value: Math.round(p.progressPct ?? 0),
+    }))
+    .reverse();
+
+  return {
+    animationDuration: 700,
+    grid: { left: 4, right: 42, top: 12, bottom: 10, containLabel: true },
+    tooltip: { trigger: "axis" },
+    xAxis: {
+      type: "value",
+      max: 100,
+      axisLabel: { color: CHART_TEXT, formatter: "{value}%" },
+      splitLine: { lineStyle: { color: CHART_GRID } },
+    },
+    yAxis: {
+      type: "category",
+      data: rows.map((r) => truncate(r.name, 24)),
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: CHART_TEXT },
+    },
+    series: [
+      {
+        type: "bar",
+        data: rows.map((r) => ({
+          value: r.value,
+          itemStyle: { color: pctColor(r.value), borderRadius: [0, 6, 6, 0] },
+        })),
+        barWidth: 12,
+        label: { show: true, position: "right", formatter: "{c}%", color: "#0F172A", fontWeight: 700 },
+      },
+    ],
+  };
+}
+
+function createModuleTreeOption(t: (path: string, fallback?: string) => string): EChartsOption {
+  return {
+    animationDuration: 500,
+    tooltip: { trigger: "item", triggerOn: "mousemove" },
+    series: [
+      {
+        type: "tree",
+        data: [
+          {
+            name: t("overview.districtData", "District data"),
+            itemStyle: { color: "#2563EB" },
+            label: { color: "#0F172A", fontWeight: 800 },
+            children: MODULE_PATHWAYS.map((group) => ({
+              name: t(`overview.pathways.${group.label}.label`, group.label),
+              itemStyle: { color: TONE_STYLES[group.tone].color },
+              label: { color: "#1E293B", fontWeight: 700 },
+              children: group.slugs.slice(0, 4).map((slug) => ({
+                name: t(`modules.${slug}`, MODULE_MAP[slug]?.label ?? slug),
+                itemStyle: { color: "#94A3B8" },
+                label: { color: "#64748B" },
+              })),
+            })),
+          },
+        ],
+        top: "4%",
+        bottom: "4%",
+        left: "4%",
+        right: "18%",
+        symbolSize: 9,
+        orient: "LR",
+        roam: false,
+        expandAndCollapse: false,
+        initialTreeDepth: 2,
+        lineStyle: { color: "#CBD5E1", width: 1.2, curveness: 0.35 },
+        label: { position: "right", verticalAlign: "middle", align: "left", fontSize: 11 },
+        leaves: { label: { position: "right", verticalAlign: "middle", align: "left", fontSize: 10 } },
+      },
+    ],
+  };
+}
+
+function ChartCard({
+  title,
+  eyebrow,
+  href,
+  height = 210,
+  option,
+  empty,
+}: {
+  title: string;
+  eyebrow: string;
+  href?: string;
+  height?: number;
+  option?: EChartsOption;
+  empty?: ReactNode;
+}) {
+  const content = (
+    <article className="overview-chart-card">
+      <div className="overview-card-head">
+        <div>
+          <div className="overview-eyebrow">{eyebrow}</div>
+          <h3>{title}</h3>
+        </div>
+        {href && <ArrowUpRight size={16} />}
+      </div>
+      {option ? (
+        <ReactECharts
+          option={option}
+          notMerge
+          lazyUpdate
+          opts={{ renderer: "svg" }}
+          style={{ width: "100%", height }}
+        />
+      ) : (
+        <div style={{ minHeight: height, display: "grid", placeItems: "center" }}>
+          {empty ?? <span style={{ fontSize: 13, color: "#94A3B8" }}>No data yet</span>}
+        </div>
+      )}
+    </article>
+  );
+
+  if (!href) return content;
+  return <Link href={href} className="overview-card-link">{content}</Link>;
+}
+
+function PriorityCard({
+  icon: Icon,
+  tone,
+  eyebrow,
+  title,
+  value,
+  detail,
+  href,
+  live,
+}: {
+  icon: LucideIcon;
+  tone: Tone;
+  eyebrow: string;
+  title: string;
+  value: string;
+  detail: string;
+  href: string;
+  live?: boolean;
+}) {
+  const style = TONE_STYLES[tone];
+  return (
+    <Link href={href} className="overview-priority-link">
+      <article className="overview-priority-card" style={{ borderColor: style.border }}>
+        <div className="overview-priority-icon" style={{ color: style.color, background: style.bg }}>
+          <Icon size={18} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div className="overview-card-meta">
+            <span>{eyebrow}</span>
+            {live && <LiveBadge />}
+          </div>
+          <h3>{title}</h3>
+          <div className="overview-priority-value" style={{ color: style.color }}>
+            {value}
+          </div>
+          <p>{detail}</p>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+function ModuleChip({ slug, base }: { slug: string; base: string }) {
+  const mod = MODULE_MAP[slug];
+  const { t } = useI18n();
+  if (!mod) return null;
+  const Icon = mod.icon;
+  const href = slug === "overview" ? base : `${base}/${slug}`;
+  return (
+    <Link href={href} className="overview-module-chip">
+      <Icon size={15} />
+      <span>{t(`modules.${slug}`, mod.label)}</span>
+      {LIVE_MODULES.has(slug) && <span className="overview-live-dot" aria-label="Live module" />}
+    </Link>
+  );
+}
+
+function PathwayCard({
+  group,
+  base,
+}: {
+  group: (typeof MODULE_PATHWAYS)[number];
+  base: string;
+}) {
+  const { t } = useI18n();
+  const Icon = group.icon;
+  const tone = TONE_STYLES[group.tone];
+  return (
+    <details className="overview-pathway-card" open={group.label === "Daily life" || group.label === "Money & projects"}>
+      <summary>
+        <span className="overview-pathway-icon" style={{ background: tone.bg, color: tone.color }}>
+          <Icon size={18} />
+        </span>
+        <span>
+          <strong>{t(`overview.pathways.${group.label}.label`, group.label)}</strong>
+          <small>{t(`overview.pathways.${group.label}.intent`, group.intent)}</small>
+        </span>
+        <ChevronRight size={16} className="overview-pathway-chevron" />
+      </summary>
+      <div className="overview-module-chip-grid">
+        {group.slugs.map((slug) => <ModuleChip key={`${group.label}-${slug}`} slug={slug} base={base} />)}
+      </div>
+    </details>
+  );
+}
+
+function NewsList({ items, base }: { items: NewsItem[]; base: string }) {
+  if (!items.length) return <EmptyState module="news" compact />;
+  return (
+    <div className="overview-news-list">
+      {items.slice(0, 4).map((item) => (
+        <a
+          key={item.id}
+          href={item.url ?? `${base}/news`}
+          target={item.url ? "_blank" : undefined}
+          rel={item.url ? "noopener noreferrer" : undefined}
+          className="overview-news-item"
+        >
+          <span>{truncate(item.headline, 90)}</span>
+          <small>{item.source} · {timeAgo(item.publishedAt)}</small>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function OverviewClient({ locale, stateSlug, districtSlug, stateName, districtData }: Props) {
   const base = `/${locale}/${stateSlug}/${districtSlug}`;
   const stateConfig = getStateConfig(stateSlug);
+  const { t } = useI18n();
   const { data: overview } = useOverview(districtSlug, stateSlug);
-  const dbTalukCount = overview?.data?.taluks?.length;
-  const displayedTalukCount = dbTalukCount ?? districtData.talukCount;
   const { data: crops, isLoading: cropsLoading } = useCropPrices(districtSlug, stateSlug);
-  const { data: weather, isLoading: weatherLoading } = useWeather(districtSlug, stateSlug);
   const { data: water, isLoading: waterLoading } = useWater(districtSlug, stateSlug);
   const { data: alerts } = useAlerts(districtSlug, stateSlug);
-  const { data: infraData } = useInfrastructure(districtSlug, stateSlug);
+  const { data: infraData, isLoading: infraLoading } = useInfrastructure(districtSlug, stateSlug);
   const { data: budgetData, isLoading: budgetLoading } = useBudget(districtSlug, stateSlug);
   const { data: policeData, isLoading: policeLoading } = usePolice(districtSlug, stateSlug);
   const { data: newsData, isLoading: newsLoading } = useNews(districtSlug, stateSlug);
 
-  const latestCrops = crops?.data?.slice(0, 5) ?? [];
-  const latestWeather = weather?.data?.[0];
+  const dbTalukCount = overview?.data?.taluks?.length;
+  const displayedTalukCount = dbTalukCount ?? districtData.talukCount;
   const latestDam = water?.data?.dams?.[0];
+  const latestCrops = crops?.data?.slice(0, 6) ?? [];
   const activeAlerts = alerts?.data ?? [];
-  const ongoingProjects = (infraData?.data ?? [])
-    .filter((p) => p.status === "ongoing" || p.status === "active" || p.status === "under_construction")
-    .slice(0, 4);
+  const newsItems = newsData?.data ?? [];
+  const infraProjects = infraData?.data ?? [];
+  const ongoingProjects = infraProjects.filter(isActiveProject);
+  const delayedProjects = infraProjects.filter(isDelayedProject);
+  const avgInfraProgress = ongoingProjects.length
+    ? ongoingProjects.reduce((sum, p) => sum + (p.progressPct ?? 0), 0) / ongoingProjects.length
+    : 0;
 
-  // Finance summary — use latest fiscal year only (matches finance page)
   const allBudgetEntries = budgetData?.data?.entries ?? [];
   const latestFY = allBudgetEntries.length > 0 ? allBudgetEntries[0].fiscalYear : null;
   const budgetEntries = latestFY ? allBudgetEntries.filter((e) => e.fiscalYear === latestFY) : [];
-  const totalAllocated = budgetEntries.reduce((s, e) => s + e.allocated, 0);
-  const totalSpent = budgetEntries.reduce((s, e) => s + e.spent, 0);
+  const totalAllocated = budgetEntries.reduce((sum, e) => sum + e.allocated, 0);
+  const totalSpent = budgetEntries.reduce((sum, e) => sum + e.spent, 0);
   const spentPct = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
 
-  // Police summary
   const policeStations = policeData?.data?.stations ?? [];
   const trafficRows = policeData?.data?.traffic ?? [];
-  const trafficRevenue = trafficRows.reduce((s, t) => s + t.amount, 0);
+  const trafficRevenue = trafficRows.reduce((sum, row) => sum + row.amount, 0);
 
-  // News
-  const newsItems = (newsData?.data ?? []).slice(0, 5);
+  const alertTone: Tone = activeAlerts.some((a) => a.severity === "critical")
+    ? "red"
+    : activeAlerts.length > 0
+      ? "amber"
+      : "green";
+  const damTone: Tone = latestDam && latestDam.storagePct >= 70 ? "green" : latestDam && latestDam.storagePct >= 35 ? "amber" : "red";
+  const budgetTone: Tone = spentPct >= 75 ? "green" : spentPct >= 45 ? "amber" : "red";
+
+  const topCrop = [...latestCrops].sort((a, b) => b.modalPrice - a.modalPrice)[0];
 
   return (
-    <div style={{ padding: "0" }}>
-
-      {/* ── District Hero with SVG Illustration ─── */}
+    <div className="overview-revamp">
       <DistrictHeroIllustration
         stateSlug={stateSlug}
         districtSlug={districtSlug}
@@ -164,489 +614,224 @@ export default function OverviewClient({ locale, stateSlug, districtSlug, stateN
           area: districtData.area ? districtData.area.toLocaleString("en-IN") : undefined,
           literacy: districtData.literacy ? `${districtData.literacy}%` : undefined,
           subDistrictCount: displayedTalukCount,
-          subDistrictLabel: stateConfig?.subDistrictUnitPlural ?? "Taluks",
+          subDistrictLabel: t("district.taluks", stateConfig?.subDistrictUnitPlural ?? "Taluks"),
         }}
       />
 
-      <div style={{ padding: "20px 24px 24px" }}>
-        {/* Combined supporters + sponsor CTA card (cool gray, distinct from AI Analysis) */}
-        <DistrictSponsorBanner district={districtSlug} state={stateSlug} districtName={districtData.name} stateName={stateName} locale={locale} />
+      <main className="overview-page-pad">
+        <section className="overview-command-hero" aria-labelledby="overview-command-title">
+          <div>
+            <div className="overview-eyebrow">{t("overview.commandEyebrow", "District command center")}</div>
+            <h2 id="overview-command-title">{t("overview.attentionTitle", `What needs attention in ${districtData.name}?`, { district: districtData.name })}</h2>
+            <p>
+              {t("overview.attentionBody", "Urgent alerts, water storage, spending and project movement appear before directories and archives.")}
+            </p>
+          </div>
+          <Link href={`${base}/data-sources`} className="overview-source-link">
+            <Database size={16} />
+            {t("overview.dataSources", "Data sources")}
+          </Link>
+        </section>
+
+        <section className="overview-priority-grid" aria-label={t("overview.prioritySignals", "Priority district signals")}>
+          <PriorityCard
+            icon={AlertTriangle}
+            tone={alertTone}
+            eyebrow={t("overview.publicAlerts", "Public alerts")}
+            title={activeAlerts.length > 0 ? truncate(activeAlerts[0].title, 56) : t("overview.noActiveAlerts", "No active alerts")}
+            value={activeAlerts.length > 0 ? `${activeAlerts.length}` : "0"}
+            detail={activeAlerts.length > 0 ? "active advisories need review" : t("overview.advisoriesQuiet", "district advisories look quiet")}
+            href={`${base}/alerts`}
+            live
+          />
+          <PriorityCard
+            icon={Droplets}
+            tone={damTone}
+            eyebrow={t("overview.waterStorage", "Water storage")}
+            title={latestDam?.damName ?? t("overview.damReadings", "Dam readings")}
+            value={latestDam ? `${latestDam.storagePct.toFixed(1)}%` : "—"}
+            detail={latestDam ? `${latestDam.waterLevel.toFixed(1)} / ${latestDam.maxLevel.toFixed(1)} ft` : t("overview.waitingLiveFeed", "waiting for live feed")}
+            href={`${base}/water`}
+            live
+          />
+          <PriorityCard
+            icon={PiggyBank}
+            tone={budgetTone}
+            eyebrow={t("overview.budgetUse", "Budget use")}
+            title={latestFY ? `Fiscal year ${latestFY}` : t("overview.financeTracker", "Finance tracker")}
+            value={totalAllocated > 0 ? `${spentPct.toFixed(1)}%` : "—"}
+            detail={totalAllocated > 0 ? `${formatINR(totalSpent)} spent of ${formatINR(totalAllocated)}` : t("overview.noBudgetRecords", "no budget records yet")}
+            href={`${base}/finance`}
+          />
+          <PriorityCard
+            icon={HardHat}
+            tone={delayedProjects.length > 0 ? "amber" : "green"}
+            eyebrow={t("overview.projects", "Projects")}
+            title={t("overview.infrastructureMovement", "Infrastructure movement")}
+            value={`${ongoingProjects.length}`}
+            detail={delayedProjects.length > 0 ? `${delayedProjects.length} delayed or at risk` : t("overview.averageProgress", `${Math.round(avgInfraProgress)}% average progress`, { value: Math.round(avgInfraProgress) })}
+            href={`${base}/infrastructure`}
+          />
+        </section>
 
         <LiveElectionBanner stateSlug={stateSlug} leadershipHref={`${base}/leadership`} />
+
+        {activeAlerts.length > 0 && (
+          <section className="overview-alert-strip" aria-label="Active alerts">
+            {activeAlerts.slice(0, 2).map((alert) => (
+              <Link key={alert.id} href={`${base}/alerts`} className="overview-alert-card">
+                <AlertTriangle size={16} />
+                <span>
+                  <strong>{alert.title}</strong>
+                  <small>{truncate(alert.description, 110)}</small>
+                </span>
+                <SeverityBadge severity={alert.severity} />
+              </Link>
+            ))}
+          </section>
+        )}
+
+        <section className="overview-chart-grid" aria-label="District data charts">
+          <ChartCard
+            eyebrow={t("overview.water", "Water")}
+            title={latestDam?.damName ?? t("overview.damStorage", "Dam storage")}
+            href={`${base}/water`}
+            height={190}
+            option={latestDam ? createGaugeOption(latestDam.storagePct, pctColor(latestDam.storagePct), "storage") : undefined}
+            empty={waterLoading ? <LoadingShell rows={2} /> : <EmptyState module="water" compact />}
+          />
+          <ChartCard
+            eyebrow={t("overview.finance", "Finance")}
+            title={t("overview.allocatedVsSpent", "Allocated vs spent")}
+            href={`${base}/finance`}
+            height={190}
+            option={totalAllocated > 0 ? createBudgetOption(totalAllocated, totalSpent) : undefined}
+            empty={budgetLoading ? <LoadingShell rows={2} /> : <EmptyState module="budget" compact />}
+          />
+          <ChartCard
+            eyebrow={t("overview.mandi", "Mandi")}
+            title={topCrop ? `Highest: ${topCrop.commodity}` : t("overview.cropPrices", "Crop prices")}
+            href={`${base}/crops`}
+            height={210}
+            option={latestCrops.length > 0 ? createCropOption(latestCrops) : undefined}
+            empty={cropsLoading ? <LoadingShell rows={2} /> : <EmptyState module="crops" compact />}
+          />
+          <ChartCard
+            eyebrow={t("overview.projects", "Projects")}
+            title={t("overview.activeWorksProgress", "Progress of active works")}
+            href={`${base}/infrastructure`}
+            height={210}
+            option={ongoingProjects.length > 0 ? createInfraOption(ongoingProjects) : undefined}
+            empty={infraLoading ? <LoadingShell rows={2} /> : <EmptyState module="infrastructure" compact />}
+          />
+        </section>
 
         <AIInsightCard module="overview" district={districtSlug} />
         <DistrictHealthScoreCard districtSlug={districtSlug} />
 
-        {/* ── Active Alerts ────────────────────────────── */}
-        {activeAlerts.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            {activeAlerts.slice(0, 3).map((a) => {
-              const isCritical = a.severity === "critical";
-              const isHigh = a.severity === "high";
-              const bg = isCritical ? "#FFF1F0" : isHigh ? "#FFFBEB" : "#F0F7FF";
-              const border = isCritical ? "#FECACA" : isHigh ? "#FDE68A" : "#BFDBFE";
-              const leftBorder = isCritical ? "#DC2626" : isHigh ? "#D97706" : "#2563EB";
-              return (
-                <Link key={a.id} href={`${base}/alerts`} style={{ textDecoration: "none", display: "block", marginBottom: 8 }}>
-                  <div style={{
-                    display: "flex", alignItems: "flex-start", gap: 10,
-                    padding: "10px 14px 10px 12px",
-                    background: bg, border: `1px solid ${border}`,
-                    borderLeft: `4px solid ${leftBorder}`,
-                    borderRadius: 10, fontSize: 13, color: "#1A1A1A",
-                  }}>
-                    <AlertTriangle size={14} style={{ color: leftBorder, flexShrink: 0, marginTop: 1 }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600 }}>{a.title}</div>
-                      {a.description && (
-                        <div style={{ fontSize: 12, color: "#6B6B6B", marginTop: 2, lineHeight: 1.4 }}>
-                          {a.description.length > 100 ? a.description.slice(0, 100) + "…" : a.description}
-                        </div>
-                      )}
-                    </div>
-                    <SeverityBadge severity={a.severity} />
-                  </div>
-                </Link>
-              );
-            })}
+        <section className="overview-stats-section" aria-label="District snapshot">
+          <SectionLabel>{t("overview.districtSnapshot", "District snapshot")}</SectionLabel>
+          <div className="overview-stats-grid">
+            <StatCard label={t("district.population", "Population")} value={districtData.population?.toLocaleString("en-IN") ?? "—"} icon={Users} />
+            <StatCard label={`${t("district.area", "Area")} (km²)`} value={districtData.area?.toLocaleString("en-IN") ?? "—"} icon={TreePine} />
+            <StatCard label={t("district.taluks", stateConfig?.subDistrictUnitPlural ?? "Taluks")} value={displayedTalukCount ?? "—"} icon={MapPin} />
+            {(stateConfig?.showVillages !== false) && (
+              <StatCard label={t("district.villages", "Villages")} value={districtData.villageCount?.toLocaleString("en-IN") ?? "—"} icon={Building2} />
+            )}
+            <StatCard label={t("district.literacy", "Literacy")} value={districtData.literacy ? `${districtData.literacy}%` : "—"} icon={Percent} accent="#16A34A" />
+            <StatCard label={t("modules.schemes", "Schemes")} value={overview?.data?._count?.schemes?.toString() ?? "—"} icon={FileText} />
           </div>
-        )}
+        </section>
 
-        {/* ── Live Data Row ─────────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))", gap: 12, marginBottom: 24 }}>
-
-          {/* Weather Widget */}
-          <Link href={`${base}/weather`} style={{ textDecoration: "none" }}
-            onMouseEnter={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget.firstElementChild as HTMLElement).style.boxShadow = "0 6px 18px rgba(37,99,235,0.12)"; }}
-            onMouseLeave={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.transform = ""; (e.currentTarget.firstElementChild as HTMLElement).style.boxShadow = "0 2px 8px rgba(37,99,235,0.05)"; }}>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderLeft: "4px solid #2563EB", borderRadius: 14, padding: 18, height: "100%", boxShadow: "0 2px 8px rgba(37,99,235,0.05)", transition: "transform 200ms, box-shadow 200ms" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Cloud size={15} style={{ color: "#2563EB" }} />
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A" }}>Weather</span>
-                </div>
-                <LiveBadge />
-              </div>
-              {weatherLoading ? <LoadingShell rows={2} /> : latestWeather ? (
-                <div>
-                  <div style={{ fontSize: 36, fontWeight: 800, color: "#1A1A1A", fontFamily: "var(--font-mono)", letterSpacing: "-2px", lineHeight: 1 }}>
-                    {latestWeather.temperature != null ? `${latestWeather.temperature}°` : "—"}
-                  </div>
-                  <div style={{ fontSize: 13, color: "#6B6B6B", marginTop: 4 }}>{latestWeather.conditions ?? "—"}</div>
-                  <div style={{ display: "flex", gap: 14, marginTop: 10 }}>
-                    {latestWeather.humidity != null && <span style={{ fontSize: 12, color: "#9B9B9B" }}>💧 {latestWeather.humidity}%</span>}
-                    {latestWeather.windSpeed != null && <span style={{ fontSize: 12, color: "#9B9B9B" }}>🌬 {latestWeather.windSpeed} km/h</span>}
-                  </div>
-                </div>
-              ) : <EmptyState module="weather" compact />}
-            </div>
-          </Link>
-
-          {/* Dam Level Widget */}
-          <Link href={`${base}/water`} style={{ textDecoration: "none" }}
-            onMouseEnter={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget.firstElementChild as HTMLElement).style.boxShadow = "0 6px 18px rgba(217,119,6,0.12)"; }}
-            onMouseLeave={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.transform = ""; (e.currentTarget.firstElementChild as HTMLElement).style.boxShadow = "0 2px 8px rgba(37,99,235,0.05)"; }}>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderLeft: "4px solid #D97706", borderRadius: 14, padding: 18, height: "100%", boxShadow: "0 2px 8px rgba(37,99,235,0.05)", transition: "transform 200ms, box-shadow 200ms" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 14 }}>🚰</span>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A" }}>Dam Levels</span>
-                </div>
-                <LiveBadge />
-              </div>
-              {waterLoading ? <LoadingShell rows={2} /> : latestDam ? (
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A", marginBottom: 6 }}>{latestDam.damName}</div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-                    <span style={{ fontSize: 32, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-1px", lineHeight: 1, color: latestDam.storagePct > 70 ? "#16A34A" : latestDam.storagePct > 30 ? "#D97706" : "#DC2626" }}>
-                      {latestDam.storagePct.toFixed(1)}
-                    </span>
-                    <span style={{ fontSize: 14, color: "#9B9B9B", fontWeight: 600 }}>%</span>
-                  </div>
-                  <div style={{ marginTop: 10, background: "#F0F0EC", borderRadius: 6, height: 6, overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, latestDam.storagePct)}%`, height: "100%", background: latestDam.storagePct > 70 ? "#2563EB" : latestDam.storagePct > 30 ? "#D97706" : "#DC2626", borderRadius: 6, transition: "width 0.5s" }} />
-                  </div>
-                  <div style={{ fontSize: 11, color: "#9B9B9B", marginTop: 5 }}>
-                    {latestDam.waterLevel.toFixed(1)} / {latestDam.maxLevel.toFixed(1)} ft
-                  </div>
-                </div>
-              ) : <EmptyState module="water" compact />}
-            </div>
-          </Link>
-
-          {/* Crop Prices Widget */}
-          <Link href={`${base}/crops`} style={{ textDecoration: "none" }}
-            onMouseEnter={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget.firstElementChild as HTMLElement).style.boxShadow = "0 6px 18px rgba(22,163,74,0.12)"; }}
-            onMouseLeave={(e) => { (e.currentTarget.firstElementChild as HTMLElement).style.transform = ""; (e.currentTarget.firstElementChild as HTMLElement).style.boxShadow = "0 2px 8px rgba(22,163,74,0.05)"; }}>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderLeft: "4px solid #16A34A", borderRadius: 14, padding: 18, height: "100%", boxShadow: "0 2px 8px rgba(22,163,74,0.05)", transition: "transform 200ms, box-shadow 200ms" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: "#F0FDF4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 14 }}>🌾</span>
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A" }}>Mandi Prices</span>
-                </div>
-                <LiveBadge />
-              </div>
-              {cropsLoading ? <LoadingShell rows={3} /> : latestCrops.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                  {latestCrops.map((c) => (
-                    <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ fontSize: 12, color: "#1A1A1A" }}>{c.commodity}</span>
-                      <span style={{ fontSize: 13, fontFamily: "var(--font-mono)", fontWeight: 700, color: "#16A34A" }}>
-                        ₹{Math.round(c.modalPrice / 100).toLocaleString("en-IN")}<span style={{ fontSize: 10, color: "#9B9B9B", fontWeight: 400 }}>/kg</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : <EmptyState module="crops" compact />}
-            </div>
-          </Link>
-        </div>
-
-        {/* ── District Snapshot ─────────────────────────── */}
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel>District Snapshot</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
-            <StatCard label="Population" value={districtData.population?.toLocaleString("en-IN") ?? "—"} icon={Users} />
-            <StatCard label="Area (km²)" value={districtData.area?.toLocaleString("en-IN") ?? "—"} icon={TreePine} />
-            <StatCard label={stateConfig?.subDistrictUnitPlural ?? "Taluks"} value={displayedTalukCount ?? "—"} icon={MapPin} />
-            {(stateConfig?.showVillages !== false) && <StatCard label="Villages" value={districtData.villageCount?.toLocaleString("en-IN") ?? "—"} icon={MapPin} />}
-            <StatCard label="Literacy" value={districtData.literacy ? `${districtData.literacy}%` : "—"} icon={Percent} accent="#16A34A" />
-            <StatCard label="Sex Ratio" value={districtData.sexRatio ? `${districtData.sexRatio}/1k` : "—"} icon={Activity} />
-            <StatCard label="Schemes" value={overview?.data?._count?.schemes?.toString() ?? "—"} icon={ScrollText} />
-            <StatCard label="Schools" value={overview?.data?._count?.schools?.toString() ?? "—"} icon={BarChart3} />
-          </div>
-        </div>
-
-        {/* ── Population & Demographics snippet — auto-hides if no DemographicProfile ── */}
-        <PopulationSnippet district={districtSlug} state={stateSlug} base={base} />
-
-        {/* ── District Leadership snippet — auto-hides if 0 leaders ── */}
-        <LeadersSnippet district={districtSlug} state={stateSlug} base={base} />
-
-        {/* ── Infrastructure At a Glance — auto-hides if 0 projects ── */}
-        <InfraSnippet district={districtSlug} state={stateSlug} base={base} />
-
-        {/* ── Govt. Tenders snippet — always renders (lock/live/stale/no-data).
-            No outer wrapper: the snippet carries its own marginBottom:24,
-            matching LeadersSnippet + InfraSnippet for consistent alignment. */}
-        <TenderSnippet locale={locale} district={districtSlug} state={stateSlug} base={base} />
-
-        {/* ── Ongoing Projects ─────────────────────────── */}
-        {ongoingProjects.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <SectionLabel action={<Link href={`${base}/map`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 500 }}>See map →</Link>}>
-              Ongoing Projects
-            </SectionLabel>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-              {ongoingProjects.map((p) => {
-                const pct = p.progressPct ?? 0;
-                const catColors: Record<string, string> = {
-                  Roads: "#F59E0B", Irrigation: "#2563EB", "Urban Development": "#7C3AED",
-                  Health: "#DC2626", Education: "#16A34A",
-                };
-                const catColor = catColors[p.category] ?? "#6B6B6B";
-                return (
-                  <div key={p.id} style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 12, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A", lineHeight: 1.4 }}>{p.name}</div>
-                        {p.contractor && (
-                          <div style={{ fontSize: 11, color: "#9B9B9B", marginTop: 2 }}>
-                            <HardHat size={10} style={{ display: "inline", marginRight: 3 }} />
-                            {p.contractor}
-                          </div>
-                        )}
-                      </div>
-                      <span style={{ fontSize: 10, fontWeight: 600, padding: "3px 8px", background: catColor + "18", color: catColor, borderRadius: 20, flexShrink: 0 }}>
-                        {p.category}
-                      </span>
-                    </div>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                        <span style={{ fontSize: 11, color: "#6B6B6B" }}>Progress</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: pct >= 75 ? "#16A34A" : pct >= 40 ? "#D97706" : "#DC2626", fontFamily: "var(--font-mono)" }}>{pct.toFixed(0)}%</span>
-                      </div>
-                      <div style={{ height: 6, background: "#F0F0EC", borderRadius: 4, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", background: pct >= 75 ? "#16A34A" : pct >= 40 ? "#F59E0B" : "#DC2626", borderRadius: 4, transition: "width 0.5s" }} />
-                      </div>
-                    </div>
-                    {p.budget && (
-                      <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#6B6B6B", marginTop: 8 }}>
-                        <span>₹{(p.budget / 1e7).toFixed(0)} Cr budget</span>
-                        {p.expectedEnd && <span>· Due {new Date(p.expectedEnd).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+        <section className="overview-pathway-layout" aria-labelledby="overview-find-title">
+          <div className="overview-pathway-copy">
+            <div className="overview-eyebrow">{t("overview.findEyebrow", "Find information faster")}</div>
+            <h2 id="overview-find-title">{t("overview.findTitle", "Start with a citizen question, not a department name.")}</h2>
+            <p>
+              {t("overview.findBody", "Choose the question closest to what you need, then jump into the relevant dashboard.")}
+            </p>
+            <div className="overview-search-cue">
+              <Search size={16} />
+              {t("overview.searchCue", "Use the top search for district or module names.")}
             </div>
           </div>
-        )}
+          <ChartCard
+            eyebrow={t("overview.moduleMap", "Module map")}
+            title={t("overview.groupedData", "How the data is grouped")}
+            height={340}
+            option={createModuleTreeOption(t)}
+          />
+        </section>
 
-        {/* ── Finance & Budget Summary — hidden entirely when no data ── */}
-        {(budgetLoading || budgetEntries.length > 0) && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel action={<Link href={`${base}/finance`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 500 }}>Full report →</Link>}>
-            Finance & Budget
-          </SectionLabel>
-          <Link href={`${base}/finance`} style={{ textDecoration: "none" }}>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 14, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-              {budgetLoading ? (
-                <LoadingShell rows={3} />
-              ) : (
-                <>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 16, marginBottom: 16 }}>
-                    <div>
-                      <div style={{ fontSize: 11, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Total Allocated</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#1A1A1A", fontFamily: "var(--font-mono)", letterSpacing: "-0.5px" }}>
-                        ₹{(totalAllocated / 1e7).toFixed(0)} Cr
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Total Spent</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#16A34A", fontFamily: "var(--font-mono)", letterSpacing: "-0.5px" }}>
-                        ₹{(totalSpent / 1e7).toFixed(0)} Cr
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Utilisation</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div style={{ fontSize: 28, fontWeight: 800, color: spentPct >= 75 ? "#16A34A" : spentPct >= 50 ? "#D97706" : "#DC2626", fontFamily: "var(--font-mono)", letterSpacing: "-1px", lineHeight: 1 }}>
-                          {spentPct.toFixed(1)}%
-                        </div>
-                        <TrendingUp size={14} style={{ color: spentPct >= 75 ? "#16A34A" : "#D97706" }} />
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ background: "#F0F0EC", borderRadius: 6, height: 10, overflow: "hidden" }}>
-                    <div style={{ width: `${Math.min(100, spentPct)}%`, height: "100%", background: spentPct >= 75 ? "#16A34A" : spentPct >= 50 ? "#F59E0B" : "#DC2626", borderRadius: 6, transition: "width 0.5s" }} />
-                  </div>
-                  <div style={{ fontSize: 11, color: "#9B9B9B", marginTop: 6 }}>
-                    {budgetEntries.length} sector{budgetEntries.length !== 1 ? "s" : ""} tracked
-                  </div>
-                </>
-              )}
-            </div>
-          </Link>
-        </div>
-        )}
+        <section className="overview-pathway-list" aria-label="Information pathways">
+          {MODULE_PATHWAYS.map((group) => (
+            <PathwayCard key={group.label} group={group} base={base} />
+          ))}
+        </section>
 
-        {/* ── Police & Crime Summary — hidden entirely when no data ── */}
-        {(policeLoading || policeStations.length > 0) && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel action={<Link href={`${base}/police`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 500 }}>Station directory →</Link>}>
-            Police & Public Safety
-          </SectionLabel>
-          <Link href={`${base}/police`} style={{ textDecoration: "none" }}>
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 14, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-              {policeLoading ? (
-                <LoadingShell rows={2} />
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 16 }}>
-                  <div>
-                    <div style={{ fontSize: 11, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Police Stations</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: "#FFF1F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Shield size={15} style={{ color: "#DC2626" }} />
-                      </div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#1A1A1A", fontFamily: "var(--font-mono)" }}>
-                        {policeStations.length}
-                      </div>
-                    </div>
-                  </div>
-                  {trafficRevenue > 0 && (
-                    <div>
-                      <div style={{ fontSize: 11, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Traffic Revenue</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#D97706", fontFamily: "var(--font-mono)", letterSpacing: "-0.5px" }}>
-                        ₹{(trafficRevenue / 1e5).toFixed(1)}L
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </Link>
-        </div>
-        )}
+        <section className="overview-workbench-grid" aria-label="District workbench">
+          <PopulationSnippet district={districtSlug} state={stateSlug} base={base} />
+          <LeadersSnippet district={districtSlug} state={stateSlug} base={base} />
+          <InfraSnippet district={districtSlug} state={stateSlug} base={base} />
+          <TenderSnippet locale={locale} district={districtSlug} state={stateSlug} base={base} />
+        </section>
 
-        {/* ── Local News — hidden entirely when no items and not loading ── */}
-        {(newsLoading || newsItems.length > 0) && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionLabel action={<Link href={`${base}/news`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 500 }}>All news →</Link>}>
-            Local News
-          </SectionLabel>
-          {newsLoading ? (
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 14, padding: "18px 20px" }}>
-              <LoadingShell rows={4} />
+        <section className="overview-two-col" aria-label="Accountability and updates">
+          <article className="overview-summary-card">
+            <div className="overview-card-head">
+              <div>
+                <div className="overview-eyebrow">{t("overview.publicSafety", "Public safety")}</div>
+                <h3>{t("overview.policeTraffic", "Police & traffic")}</h3>
+              </div>
+              <Link href={`${base}/police`}>{t("overview.stationDirectory", "Station directory")}</Link>
             </div>
-          ) : newsItems.length === 0 ? (
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 14, padding: "24px 20px", textAlign: "center" }}>
-              <Newspaper size={28} style={{ color: "#C0C0BA", margin: "0 auto 8px" }} />
-              <div style={{ fontSize: 13, color: "#9B9B9B" }}>No news available yet</div>
-            </div>
-          ) : (
-            <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 14, overflow: "hidden" }}>
-              {newsItems.map((item, idx) => {
-                const catColor = CATEGORY_COLORS[item.category?.toLowerCase()] ?? "#6B6B6B";
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      padding: "14px 18px",
-                      borderBottom: idx < newsItems.length - 1 ? "1px solid #F0F0EC" : "none",
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 12,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A", lineHeight: 1.4, marginBottom: 4 }}>
-                        {item.url ? (
-                          <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit", textDecoration: "none" }}>
-                            {item.headline}
-                          </a>
-                        ) : item.headline}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 11, color: "#9B9B9B" }}>{item.source}</span>
-                        <span style={{ fontSize: 11, color: "#C0C0BA" }}>·</span>
-                        <span style={{ fontSize: 11, color: "#9B9B9B" }}>{timeAgo(item.publishedAt)}</span>
-                        {item.category && (
-                          <span style={{
-                            fontSize: 10, fontWeight: 600, padding: "2px 7px",
-                            background: catColor + "18", color: catColor,
-                            borderRadius: 20, textTransform: "capitalize",
-                          }}>
-                            {item.category}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        )}
+            {policeLoading ? (
+              <LoadingShell rows={2} />
+            ) : (
+              <div className="overview-metric-row">
+                <div><Shield size={17} /><strong>{policeStations.length}</strong><span>{t("overview.stations", "stations")}</span></div>
+                <div><TrendingUp size={17} /><strong>{formatINR(trafficRevenue)}</strong><span>{t("overview.trafficRevenue", "traffic revenue")}</span></div>
+              </div>
+            )}
+          </article>
 
-        {/* ── Taluks ────────────────────────────────────── */}
+          <article className="overview-summary-card">
+            <div className="overview-card-head">
+              <div>
+                <div className="overview-eyebrow">{t("overview.localNews", "Local news")}</div>
+                <h3>{t("overview.latestUpdates", "Latest verified updates")}</h3>
+              </div>
+              <Link href={`${base}/news`}>{t("overview.allNews", "All news")}</Link>
+            </div>
+            {newsLoading ? <LoadingShell rows={3} /> : <NewsList items={newsItems} base={base} />}
+          </article>
+        </section>
+
         {districtData.taluks.length > 0 && (
-          <div style={{ marginBottom: 28 }}>
+          <section className="overview-taluks" aria-label={`${stateConfig?.subDistrictUnitPlural ?? "Taluks"} in ${districtData.name}`}>
             <SectionLabel>{stateConfig?.subDistrictUnitPlural ?? "Taluks"} in {districtData.name}</SectionLabel>
-            <CardGrid>
-              {districtData.taluks.map((t) => (
-                <Link
-                  key={t.slug}
-                  href={`${base}/${t.slug}`}
-                  style={{ display: "block", padding: "12px 14px", background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 10, textDecoration: "none" }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 500, color: "#1A1A1A" }}>{t.name}</div>
-                  {t.nameLocal && (
-                    <div style={{ fontSize: 11, color: "#9B9B9B", fontFamily: "var(--font-regional)", marginTop: 2 }}>{t.nameLocal}</div>
-                  )}
-                  {t.tagline && (
-                    <div style={{ fontSize: 11, color: "#6B6B6B", marginTop: 4 }}>{t.tagline}</div>
-                  )}
+            <div className="overview-taluk-grid">
+              {districtData.taluks.map((taluk) => (
+                <Link key={taluk.slug} href={`${base}/${taluk.slug}`} className="overview-taluk-card">
+                  <strong>{taluk.name}</strong>
+                  {taluk.nameLocal && <span>{taluk.nameLocal}</span>}
+                  {taluk.tagline && <small>{taluk.tagline}</small>}
                 </Link>
               ))}
-            </CardGrid>
-          </div>
+            </div>
+          </section>
         )}
 
-        {/* ── All Data Modules — Categorized Grid ──────── */}
-        <div style={{ marginBottom: 28 }}>
-          <SectionLabel>All {SIDEBAR_MODULES.length - 1} Data Modules</SectionLabel>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {MODULE_CATEGORIES.map((cat) => {
-              const mods = cat.slugs
-                .map((slug) => SIDEBAR_MODULES.find((m) => m.slug === slug))
-                .filter(Boolean) as typeof SIDEBAR_MODULES;
-              if (!mods.length) return null;
-
-              return (
-                <div key={cat.label}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#9B9B9B", letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
-                    {cat.label}
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-                      gap: 8,
-                    }}
-                    className="module-grid"
-                  >
-                    {mods.map((mod) => {
-                      const isLive = LIVE_MODULES.has(mod.slug);
-                      const href = mod.slug === "overview" ? base : `${base}/${mod.slug}`;
-                      return (
-                        <Link
-                          key={mod.slug}
-                          href={href}
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-start",
-                            padding: "12px 12px 10px",
-                            background: "#FFFFFF",
-                            border: "1px solid #E8E8E4",
-                            borderRadius: 12,
-                            textDecoration: "none",
-                            color: "#1A1A1A",
-                            position: "relative",
-                            transition: "border-color 150ms, box-shadow 150ms",
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
-                            (e.currentTarget as HTMLElement).style.borderColor = "#2563EB";
-                            (e.currentTarget as HTMLElement).style.background = "#F8FBFF";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLElement).style.boxShadow = "none";
-                            (e.currentTarget as HTMLElement).style.borderColor = "#E8E8E4";
-                            (e.currentTarget as HTMLElement).style.background = "#FFFFFF";
-                          }}
-                        >
-                          {isLive && (
-                            <div style={{
-                              position: "absolute",
-                              top: 8,
-                              right: 8,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                              background: "#F0FDF4",
-                              border: "1px solid #BBF7D0",
-                              borderRadius: 4,
-                              padding: "1px 5px",
-                            }}>
-                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#16A34A" }} />
-                              <span style={{ fontSize: 9, fontWeight: 700, color: "#16A34A", letterSpacing: "0.04em" }}>LIVE</span>
-                            </div>
-                          )}
-                          <span style={{ fontSize: 20, marginBottom: 8, lineHeight: 1 }}>{mod.emoji}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1A1A1A", lineHeight: 1.3, wordBreak: "break-word", hyphens: "auto" }}>
-                            {mod.label}
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-      </div>
+        <section className="overview-sponsor-section">
+          <DistrictSponsorBanner
+            district={districtSlug}
+            state={stateSlug}
+            districtName={districtData.name}
+            stateName={stateName}
+            locale={locale}
+          />
+        </section>
+      </main>
     </div>
   );
 }

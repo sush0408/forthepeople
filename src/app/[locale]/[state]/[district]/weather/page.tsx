@@ -59,7 +59,7 @@ function WeatherPageInner({ params }: { params: Promise<{ locale: string; state:
 
 
       {/* AI-crawler readable summary */}
-      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", borderRadius: 8, borderLeft: "3px solid #2563EB" }}>
+      <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", border: "1px solid #E8E8E4", borderRadius: 8 }}>
         This page shows live weather readings and monthly rainfall history for this district, sourced from India Meteorological Department (IMD) and OpenWeatherMap. Temperature is in Celsius, rainfall in millimetres. Data is updated every 5 minutes during active monitoring.
       </p>
       {(() => { const _src = getModuleSources("weather", state); return <DataSourceBanner moduleName="weather" sources={_src.sources} updateFrequency={_src.frequency} isLive={_src.isLive} />; })()}

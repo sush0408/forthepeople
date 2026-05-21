@@ -10,7 +10,7 @@
 import { use, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Gavel, AlertTriangle, Info, BookOpen, ShieldCheck } from "lucide-react";
+import { Gavel, AlertTriangle, BookOpen, ShieldCheck } from "lucide-react";
 import { ModuleHeader, LoadingShell, ErrorBlock, EmptyBlock } from "@/components/district/ui";
 import DataSourceBanner from "@/components/common/DataSourceBanner";
 import ModuleErrorBoundary from "@/components/common/ModuleErrorBoundary";
@@ -19,6 +19,7 @@ import TenderDisclaimer from "@/components/tenders/TenderDisclaimer";
 import TenderCard, { type TenderCardData } from "@/components/tenders/TenderCard";
 import TenderLockedState from "@/components/tenders/TenderLockedState";
 import { formatInr } from "@/lib/tenders/format";
+import { buildTenderQueryKey, buildTenderQuerySearch } from "@/lib/tenders/ui";
 
 interface AccessResponse {
   tendersActive: boolean;
@@ -66,15 +67,27 @@ export default function TendersPage({
   // render TenderLockedState instead of the dashboard. Cheap single-row
   // query; cached for 2 minutes by react-query so it won't fire per nav.
   const access = useQuery<AccessResponse>({
-    queryKey: ["tenders-access", districtSlug],
-    queryFn: () => fetch(`/api/tenders/${districtSlug}/access`).then((r) => r.json()),
+    queryKey: buildTenderQueryKey("access", stateSlug, districtSlug),
+    queryFn: () => fetch(`/api/tenders/${districtSlug}/access?${buildTenderQuerySearch(stateSlug)}`).then((r) => r.json()),
     staleTime: 2 * 60_000,
   });
 
   const listQuery = useQuery<ListResponse>({
-    queryKey: ["tenders-list", districtSlug, tab, valuePreset, category, onlyFlagged, onlyMse, search, page],
+    queryKey: buildTenderQueryKey(
+      "list",
+      stateSlug,
+      districtSlug,
+      tab,
+      valuePreset,
+      category,
+      onlyFlagged,
+      onlyMse,
+      search,
+      page,
+    ),
     queryFn: async () => {
       const qs = new URLSearchParams({ status: tab, page: String(page), pageSize: String(pageSize) });
+      qs.set("state", stateSlug);
       const preset = VALUE_PRESETS[valuePreset];
       if (preset.min) qs.set("valueMin", String(preset.min));
       if (preset.max) qs.set("valueMax", String(preset.max));
@@ -87,9 +100,9 @@ export default function TendersPage({
     },
   });
   const stats = useQuery<StatsResponse>({
-    queryKey: ["tenders-stats", districtSlug],
+    queryKey: buildTenderQueryKey("stats", stateSlug, districtSlug),
     queryFn: async () => {
-      const res = await fetch(`/api/tenders/${districtSlug}/stats`);
+      const res = await fetch(`/api/tenders/${districtSlug}/stats?${buildTenderQuerySearch(stateSlug)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     },
@@ -97,6 +110,7 @@ export default function TendersPage({
 
   const moduleSources = getModuleSources("tenders", stateSlug);
   const tenders = (listQuery.data?.tenders ?? []).filter((t) => (onlyFlagged ? t.redFlags.length > 0 : true));
+  const hasActiveFilters = valuePreset !== 0 || Boolean(category) || onlyFlagged || onlyMse || Boolean(search.trim());
 
   // Render the locked state whenever the flag resolves false. Until the
   // access query resolves we show nothing heavy — the dashboard shell
@@ -106,7 +120,6 @@ export default function TendersPage({
       <ModuleErrorBoundary moduleName="TendersLocked">
         <TenderLockedState
           locale={locale}
-          stateSlug={stateSlug}
           stateName={access.data.stateName ?? ""}
           districtSlug={districtSlug}
           districtName={access.data.districtName ?? ""}
@@ -202,10 +215,38 @@ export default function TendersPage({
           {listQuery.isLoading && <LoadingShell rows={3} />}
           {listQuery.error && <ErrorBlock message="Couldn't load tenders — please try again in a moment." />}
           {!listQuery.isLoading && !listQuery.error && tenders.length === 0 && (
-            <EmptyBlock message={tab === "LIVE"
-              ? "No tenders match your filters. Try switching tabs or loosening filters. New tenders ingest every 30 minutes."
-              : "No tenders match your filters. Try the Live tab for current opportunities."}
-            />
+            <div style={{ display: "grid", gap: 10 }}>
+              <EmptyBlock message={tab === "LIVE"
+                ? "No tenders match your filters. Try switching tabs or loosening filters. New tenders ingest every 30 minutes."
+                : "No tenders match your filters. Try the Live tab for current opportunities."}
+              />
+              {hasActiveFilters && (
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <button
+                    onClick={() => {
+                      setValuePreset(0);
+                      setCategory("");
+                      setOnlyFlagged(false);
+                      setOnlyMse(false);
+                      setSearch("");
+                      setPage(1);
+                    }}
+                    style={{
+                      border: "1px solid #CBD5E1",
+                      background: "#FFFFFF",
+                      color: "#0F172A",
+                      borderRadius: 999,
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {tenders.length > 0 && (
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>

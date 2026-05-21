@@ -5,8 +5,8 @@
  */
 
 import { Suspense, Fragment } from "react";
-import Link from "next/link";
 import type { Metadata } from "next";
+import { ArrowRight, ArrowUpRight, Bug, Coins, HeartHandshake } from "lucide-react";
 import SupportCheckout from "@/components/support/SupportCheckout";
 import ContributorWallClient from "@/components/support/ContributorWallClient";
 import ContributorCountBanner from "@/components/support/ContributorCountBanner";
@@ -16,8 +16,50 @@ import { getTotalActiveDistrictCount, getActiveStateCount } from "@/lib/constant
 import SupporterQuotes from "@/components/support/SupporterQuotes";
 import { prisma } from "@/lib/db";
 import { SUPPORT_DEFAULTS, type CostBreakdownItem, type HelpItem, type SupportPageContent } from "@/lib/support-defaults";
+import { isInternalHref } from "@/lib/chrome";
+import LocaleLink from "@/components/common/LocaleLink";
 
 export const revalidate = 60; // content rarely changes; 60s cache is enough
+
+function SectionHeading({
+  icon: Icon,
+  title,
+}: {
+  icon: typeof Coins;
+  title: string;
+}) {
+  return (
+    <h2
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        fontSize: 18,
+        fontWeight: 700,
+        color: "#1A1A1A",
+        marginBottom: 16,
+        letterSpacing: "-0.3px",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          background: "#EFF6FF",
+          color: "#2563EB",
+        }}
+      >
+        <Icon size={17} strokeWidth={2.2} />
+      </span>
+      {title}
+    </h2>
+  );
+}
 
 /** Render markdown-lite: **bold** → <strong>, blank lines → new paragraph. */
 function renderBioText(text: string): React.ReactNode {
@@ -218,9 +260,9 @@ export default async function SupportPage() {
         {/* ── 3. Active supporters (scrolling) + one-time ── */}
         <ContributorWallClient />
         <div style={{ textAlign: "center", marginTop: 12, marginBottom: 24 }}>
-          <Link href="/en/contributors" style={{ fontSize: 13, color: "#2563EB", fontWeight: 500, textDecoration: "none" }}>
+          <LocaleLink href="/contributors" style={{ fontSize: 13, color: "#2563EB", fontWeight: 500, textDecoration: "none" }}>
             View full contributor leaderboard →
-          </Link>
+          </LocaleLink>
         </div>
 
         {/* ── 4. Supporter quotes ── */}
@@ -322,9 +364,7 @@ export default async function SupportPage() {
         </div>
 
         {/* ── 7. Where Your Money Goes ── */}
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A1A", marginBottom: 16, letterSpacing: "-0.3px" }}>
-          🔍 Where Your Money Goes
-        </h2>
+        <SectionHeading icon={Coins} title="Where Your Money Goes" />
         <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 14, padding: "20px 24px", marginBottom: 40 }}>
           {content.costBreakdown.map((item) => (
             <div key={item.label} style={{ marginBottom: 14 }}>
@@ -340,26 +380,87 @@ export default async function SupportPage() {
         </div>
 
         {/* ── 8. Other Ways to Help ── */}
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#1A1A1A", marginBottom: 16, letterSpacing: "-0.3px" }}>
-          🤝 Other Ways to Help
-        </h2>
+        <SectionHeading icon={HeartHandshake} title="Other Ways to Help" />
         <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 14, padding: "20px 24px", marginBottom: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {content.helpItems.map((item) => (
-              <a key={item.label} href={item.url} target={item.external ? "_blank" : undefined} rel={item.external ? "noopener noreferrer" : undefined}
-                className="support-help-item" style={{ display: "flex", alignItems: "flex-start", gap: 12, textDecoration: "none", padding: "10px 12px", borderRadius: 8, borderLeft: "3px solid transparent", cursor: "pointer" }}>
-                <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}>{item.label}</div>
-                  <div style={{ fontSize: 12, color: "#6B6B6B" }}>{item.desc}</div>
-                </div>
-                <span aria-hidden="true" className="support-help-arrow" style={{ fontSize: 16, color: "#9B9B9B", flexShrink: 0, transition: "transform 150ms, color 150ms" }}>
-                  {item.external ? "↗" : "→"}
-                </span>
-              </a>
-            ))}
+            {content.helpItems.map((item) => {
+              const isInternal = !item.external && isInternalHref(item.url);
+              const sharedProps = {
+                className: "support-help-item",
+                style: {
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 12,
+                  textDecoration: "none",
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                },
+              } as const;
+
+              const contentNode = (
+                <>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>{item.icon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}>{item.label}</div>
+                    <div style={{ fontSize: 12, color: "#6B6B6B" }}>{item.desc}</div>
+                  </div>
+                  <span
+                    aria-hidden="true"
+                    className="support-help-arrow"
+                    style={{
+                      display: "inline-flex",
+                      color: "#9B9B9B",
+                      flexShrink: 0,
+                      transition: "transform 150ms, color 150ms",
+                    }}
+                  >
+                    {item.external ? <ArrowUpRight size={16} /> : <ArrowRight size={16} />}
+                  </span>
+                </>
+              );
+
+              if (isInternal) {
+                return (
+                  <LocaleLink
+                    key={item.label}
+                    href={item.url}
+                    {...sharedProps}
+                  >
+                    {contentNode}
+                  </LocaleLink>
+                );
+              }
+
+              return (
+                <a
+                  key={item.label}
+                  href={item.url}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  {...sharedProps}
+                >
+                  {contentNode}
+                </a>
+              );
+            })}
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "8px 10px" }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>🐛</span>
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  background: "#FEF2F2",
+                  color: "#DC2626",
+                  flexShrink: 0,
+                }}
+              >
+                <Bug size={16} strokeWidth={2.1} />
+              </span>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#1A1A1A" }}>Report data errors</div>
                 <div style={{ fontSize: 12, color: "#6B6B6B" }}>Found wrong data?{" "}<FeedbackModal label="Use our feedback form →" /></div>
@@ -400,9 +501,9 @@ export default async function SupportPage() {
 
         {/* Back link */}
         <div style={{ textAlign: "center", marginTop: 40 }}>
-          <Link href="/en" style={{ fontSize: 13, color: "#9B9B9B", textDecoration: "none" }}>
+          <LocaleLink href="/" style={{ fontSize: 13, color: "#9B9B9B", textDecoration: "none" }}>
             ← Back to ForThePeople.in
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     </main>

@@ -6,8 +6,8 @@
 
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import { MessageSquare, CheckCircle } from "lucide-react";
+import LocaleLink from "@/components/common/LocaleLink";
 
 const FEEDBACK_TYPES = [
   { value: "bug", label: "Bug Report", emoji: "🐛", desc: "Something isn't working" },
@@ -63,15 +63,15 @@ export default function FeedbackPage() {
             We read every submission personally.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link
-              href="/en"
+            <LocaleLink
+              href="/"
               style={{
                 padding: "10px 20px", background: "#2563EB", color: "#fff",
                 borderRadius: 8, textDecoration: "none", fontSize: 14, fontWeight: 600,
               }}
             >
               Back to Home
-            </Link>
+            </LocaleLink>
             <button
               onClick={() => { setSubmitted(false); setSubject(""); setMessage(""); }}
               style={{
@@ -188,7 +188,7 @@ export default function FeedbackPage() {
           </div>
 
           {/* Optional contact info */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginBottom: 24 }}>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A", display: "block", marginBottom: 6 }}>
                 Your Name <span style={{ fontSize: 11, color: "#9B9B9B" }}>(optional)</span>

@@ -3,7 +3,7 @@
 import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Gavel, ArrowLeft, ExternalLink, Share2, Bookmark } from "lucide-react";
+import { ArrowLeft, ExternalLink, Share2, Bookmark } from "lucide-react";
 import { LoadingShell, ErrorBlock } from "@/components/district/ui";
 import TenderDisclaimer from "@/components/tenders/TenderDisclaimer";
 import CountdownTimer from "@/components/tenders/CountdownTimer";
@@ -12,6 +12,7 @@ import TenderGanttTimeline, { type TimelineEvent } from "@/components/tenders/Te
 import EligibilityWizard from "@/components/tenders/EligibilityWizard";
 import { formatInr } from "@/lib/tenders/format";
 import ModuleErrorBoundary from "@/components/common/ModuleErrorBoundary";
+import { buildTenderQueryKey, buildTenderQuerySearch } from "@/lib/tenders/ui";
 
 type TenderDetail = {
   tender: {
@@ -67,9 +68,9 @@ export default function TenderDetailPage({ params }: { params: Promise<{ locale:
   const { locale, state: stateSlug, district: districtSlug, tenderId } = use(params);
 
   const { data, isLoading, error } = useQuery<TenderDetail>({
-    queryKey: ["tender-detail", districtSlug, tenderId],
+    queryKey: buildTenderQueryKey("detail", stateSlug, districtSlug, tenderId),
     queryFn: async () => {
-      const res = await fetch(`/api/tenders/${districtSlug}/${tenderId}`);
+      const res = await fetch(`/api/tenders/${districtSlug}/${tenderId}?${buildTenderQuerySearch(stateSlug)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     },
@@ -93,12 +94,11 @@ export default function TenderDetailPage({ params }: { params: Promise<{ locale:
 
           <TenderDisclaimer variant="compact" locale={locale} stateSlug={stateSlug} districtSlug={districtSlug} />
 
-          {/* Header — left border colour-coded by deadline urgency:
-              green (>7d), yellow (2–7d), red+pulse (<48h), grey (past). */}
+          {/* Header color follows deadline urgency:
+              green (>7d), yellow (2-7d), red+pulse (<48h), grey (past). */}
           <div style={{
             background: "#FFFFFF",
-            border: "1px solid #E8E8E4",
-            borderLeft: `5px solid ${heroUrgency(t.bidSubmissionEnd).borderColor}`,
+            border: `1px solid ${heroUrgency(t.bidSubmissionEnd).borderColor}55`,
             borderRadius: 12,
             padding: 20,
             marginBottom: 20,

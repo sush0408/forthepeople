@@ -7,10 +7,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import type { ContributorsResponse } from "@/app/api/payment/contributors/route";
+import { inferLocaleFromPathname, withLocalePath } from "@/lib/locale-routing";
 
 export default function CompactContributorWall() {
+  const pathname = usePathname();
+  const locale = inferLocaleFromPathname(pathname);
   const { data, isLoading } = useQuery<ContributorsResponse>({
     queryKey: ["contributors"],
     queryFn: () => fetch("/api/payment/contributors").then((r) => r.json()),
@@ -102,7 +106,7 @@ export default function CompactContributorWall() {
 
             {/* CTA link */}
             <Link
-              href="/support"
+              href={withLocalePath(locale, "/support")}
               style={{
                 flexShrink: 0,
                 fontSize: 12,

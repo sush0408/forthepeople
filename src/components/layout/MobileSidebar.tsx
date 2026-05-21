@@ -8,8 +8,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { Heart, Scale, Vote, X, Users } from "lucide-react";
 import { SIDEBAR_MODULES, getTieredModules } from "@/lib/constants/sidebar-modules";
+import { withLocalePath } from "@/lib/locale-routing";
 
 // Derived from the priority field in sidebar-modules.ts. Single source
 // of truth for tier order + labels across desktop + mobile nav.
@@ -92,8 +93,11 @@ export default function MobileSidebar({
           borderBottom: "1px solid #E8E8E4",
           flexShrink: 0,
         }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1A1A" }}>
-            🗣️ ForThePeople.in
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "#1A1A1A" }}>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg, #3B82F6, #1D4ED8)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              <Users size={14} style={{ color: "#FFFFFF" }} strokeWidth={2.4} />
+            </span>
+            ForThePeople.in
           </span>
           <button
             onClick={onClose}
@@ -139,6 +143,7 @@ export default function MobileSidebar({
 
                 {/* Module links */}
                 {mods.map((mod) => {
+                  const Icon = mod.icon;
                   const isActive = activeSlug === mod.slug || (mod.slug === "overview" && activeSlug === "overview");
                   return (
                     <Link
@@ -152,7 +157,6 @@ export default function MobileSidebar({
                         padding: "11px 16px",
                         textDecoration: "none",
                         background: isActive ? "#EFF6FF" : "transparent",
-                        borderLeft: isActive ? "3px solid #2563EB" : "3px solid transparent",
                         color: isActive ? "#2563EB" : "#1A1A1A",
                         fontSize: 14,
                         fontWeight: isActive ? 600 : 400,
@@ -160,7 +164,7 @@ export default function MobileSidebar({
                         transition: "background 120ms ease",
                       }}
                     >
-                      <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{mod.emoji}</span>
+                      <Icon size={18} strokeWidth={1.9} style={{ flexShrink: 0, color: isActive ? "#2563EB" : "#6B6B6B" }} />
                       <span>{mod.label}</span>
                     </Link>
                   );
@@ -188,14 +192,14 @@ export default function MobileSidebar({
                 minHeight: 44,
               }}
             >
-              <span style={{ fontSize: 16, lineHeight: 1 }}>⚖️</span>
+              <Scale size={18} strokeWidth={1.9} />
               <span>Compare Districts</span>
             </Link>
           )}
 
           {/* Support */}
           <Link
-            href="/support"
+            href={withLocalePath(locale, "/support")}
             onClick={onClose}
             style={{
               display: "flex",
@@ -209,13 +213,13 @@ export default function MobileSidebar({
               minHeight: 44,
             }}
           >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>❤️</span>
+            <Heart size={18} strokeWidth={1.9} />
             <span>Support This Project</span>
           </Link>
 
           {/* Vote on Features */}
           <Link
-            href="/en/features"
+            href={withLocalePath(locale, "/features")}
             onClick={onClose}
             style={{
               display: "flex",
@@ -229,7 +233,7 @@ export default function MobileSidebar({
               minHeight: 44,
             }}
           >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>🗳️</span>
+            <Vote size={18} strokeWidth={1.9} />
             <span>Vote on Features</span>
           </Link>
         </div>

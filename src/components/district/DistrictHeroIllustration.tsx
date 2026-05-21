@@ -7,6 +7,7 @@
 import { MapPin } from "lucide-react";
 import type { DistrictBadge } from "@/lib/constants/districts";
 import DistrictBadges from "./DistrictBadges";
+import { useI18n } from "@/i18n/I18nProvider";
 
 // ── Per-district palette ─────────────────────────────────
 interface Palette {
@@ -294,7 +295,6 @@ interface DistrictHeroProps {
 }
 
 export default function DistrictHeroIllustration({
-  stateSlug,
   districtSlug,
   districtName,
   stateName,
@@ -305,6 +305,7 @@ export default function DistrictHeroIllustration({
   stats,
 }: DistrictHeroProps) {
   const palette = PALETTES[districtSlug] ?? DEFAULT_PALETTE;
+  const { t } = useI18n();
 
   return (
     <div
@@ -346,7 +347,7 @@ export default function DistrictHeroIllustration({
           {stateName}
           {!active && (
             <span style={{ marginLeft: 8, display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 6, fontSize: 11, color: "#EA580C" }}>
-              Preview
+              {t("nav.preview", "Preview")}
             </span>
           )}
         </div>
@@ -375,11 +376,11 @@ export default function DistrictHeroIllustration({
               <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-0.4px", color: "#1A1A1A" }}>
                 {stats.population}
               </div>
-              <div style={{ fontSize: 10, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Population</div>
+              <div style={{ fontSize: 10, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("district.population", "Population")}</div>
             </div>
           )}
           {stats.area && (
-            <div style={{ paddingLeft: 20, borderLeft: "1px solid #E8E8E4" }}>
+            <div>
               <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-0.4px", color: "#1A1A1A" }}>
                 {stats.area}
               </div>
@@ -387,19 +388,19 @@ export default function DistrictHeroIllustration({
             </div>
           )}
           {stats.literacy && (
-            <div style={{ paddingLeft: 20, borderLeft: "1px solid #E8E8E4" }}>
+            <div>
               <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-0.4px", color: "#1A1A1A" }}>
                 {stats.literacy}
               </div>
-              <div style={{ fontSize: 10, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Literacy</div>
+              <div style={{ fontSize: 10, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("district.literacy", "Literacy")}</div>
             </div>
           )}
           {stats.subDistrictCount != null && stats.subDistrictCount > 0 && (
-            <div style={{ paddingLeft: 20, borderLeft: "1px solid #E8E8E4" }}>
+            <div>
               <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-0.4px", color: "#1A1A1A" }}>
                 {stats.subDistrictCount}
               </div>
-              <div style={{ fontSize: 10, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{stats.subDistrictLabel}</div>
+              <div style={{ fontSize: 10, color: "#9B9B9B", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("district.taluks", stats.subDistrictLabel)}</div>
             </div>
           )}
         </div>

@@ -7,8 +7,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { X, MessageSquare } from "lucide-react";
+import LocaleLink from "@/components/common/LocaleLink";
 
 const FEEDBACK_TYPES = [
   { value: "bug", label: "🐛 Bug" },
@@ -266,12 +266,12 @@ export default function ContributePage() {
         fontFamily: "var(--font-plus-jakarta, system-ui, sans-serif)",
       }}
     >
-      <Link
+      <LocaleLink
         href="/"
         style={{ fontSize: 13, color: "#9B9B9B", textDecoration: "none", display: "inline-block", marginBottom: 16 }}
       >
         ← ForThePeople.in
-      </Link>
+      </LocaleLink>
       <h1 style={{ fontSize: 28, fontWeight: 800, color: "#1A1A1A", letterSpacing: "-0.4px", marginBottom: 8 }}>
         Contribute
       </h1>

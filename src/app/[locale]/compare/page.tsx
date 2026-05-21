@@ -15,6 +15,10 @@ import Link from "next/link";
 import { ArrowLeft, GitCompare, Lock, ChevronDown } from "lucide-react";
 import { INDIA_STATES } from "@/lib/constants/districts";
 import { useOverview, useBudget, useWeather } from "@/hooks/useRealtimeData";
+import {
+  buildStateDistrictKey,
+  parseStateDistrictKey,
+} from "@/lib/district-selection";
 
 // ── Active districts list ──────────────────────────────────
 const ACTIVE_DISTRICTS = INDIA_STATES.flatMap((s) =>
@@ -77,11 +81,16 @@ function DistrictSelector({
   label,
 }: {
   value: string;
-  onChange: (slug: string) => void;
+  onChange: (value: string) => void;
   label: string;
 }) {
   const [open, setOpen] = useState(false);
-  const selected = ACTIVE_DISTRICTS.find((x) => x.district.slug === value);
+  const selectedKey = parseStateDistrictKey(value);
+  const selected = ACTIVE_DISTRICTS.find((x) =>
+    selectedKey
+      ? x.state.slug === selectedKey.stateSlug && x.district.slug === selectedKey.districtSlug
+      : x.district.slug === value,
+  );
 
   return (
     <div style={{ position: "relative" }}>
@@ -102,7 +111,9 @@ function DistrictSelector({
           color: "#1D4ED8",
         }}
       >
-        <span>{selected?.district.name ?? "Select District"}</span>
+        <span>
+          {selected ? `${selected.district.name}, ${selected.state.name}` : "Select District"}
+        </span>
         <ChevronDown size={14} aria-hidden="true" />
       </button>
 
@@ -126,8 +137,8 @@ function DistrictSelector({
           >
             {ACTIVE_DISTRICTS.map(({ state, district }) => (
               <button
-                key={district.slug}
-                onClick={() => { onChange(district.slug); setOpen(false); }}
+                key={buildStateDistrictKey(state.slug, district.slug)}
+                onClick={() => { onChange(buildStateDistrictKey(state.slug, district.slug)); setOpen(false); }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -135,16 +146,22 @@ function DistrictSelector({
                   width: "100%",
                   padding: "9px 14px",
                   border: "none",
-                  background: district.slug === value ? "#EFF6FF" : "none",
+                  background:
+                    buildStateDistrictKey(state.slug, district.slug) === value ? "#EFF6FF" : "none",
                   cursor: "pointer",
                   textAlign: "left",
                   fontSize: 14,
-                  fontWeight: district.slug === value ? 600 : 400,
+                  fontWeight:
+                    buildStateDistrictKey(state.slug, district.slug) === value ? 600 : 400,
                   color: "#1A1A1A",
                 }}
               >
-                <span>{district.name}</span>
-                <span style={{ fontSize: 12, color: "#9B9B9B" }}>{state.name}</span>
+                <div>
+                  <div>{district.name}</div>
+                  <div style={{ fontSize: 11, color: "#9B9B9B", marginTop: 2 }}>
+                    {state.name}
+                  </div>
+                </div>
               </button>
             ))}
             {ACTIVE_DISTRICTS.length === 0 && (
@@ -164,14 +181,20 @@ function CompareContent({ locale }: { locale: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const defaultA = ACTIVE_DISTRICTS[0]?.district.slug ?? "mandya";
-  const defaultB = ACTIVE_DISTRICTS[1]?.district.slug ?? "mysuru";
+  const defaultA = ACTIVE_DISTRICTS[0]
+    ? buildStateDistrictKey(ACTIVE_DISTRICTS[0].state.slug, ACTIVE_DISTRICTS[0].district.slug)
+    : "karnataka::mandya";
+  const defaultB = ACTIVE_DISTRICTS[1]
+    ? buildStateDistrictKey(ACTIVE_DISTRICTS[1].state.slug, ACTIVE_DISTRICTS[1].district.slug)
+    : "karnataka::mysuru";
 
-  const slugA = searchParams.get("a") ?? defaultA;
-  const slugB = searchParams.get("b") ?? defaultB;
+  const selectionA = parseStateDistrictKey(searchParams.get("a") ?? "") ?? parseStateDistrictKey(defaultA)!;
+  const selectionB = parseStateDistrictKey(searchParams.get("b") ?? "") ?? parseStateDistrictKey(defaultB)!;
 
-  const stateA = ACTIVE_DISTRICTS.find((x) => x.district.slug === slugA)?.state.slug ?? "karnataka";
-  const stateB = ACTIVE_DISTRICTS.find((x) => x.district.slug === slugB)?.state.slug ?? "karnataka";
+  const slugA = selectionA.districtSlug;
+  const slugB = selectionB.districtSlug;
+  const stateA = selectionA.stateSlug;
+  const stateB = selectionB.stateSlug;
 
   const { data: overviewA, isLoading: loA } = useOverview(slugA, stateA);
   const { data: overviewB, isLoading: loB } = useOverview(slugB, stateB);
@@ -195,12 +218,12 @@ function CompareContent({ locale }: { locale: string }) {
   const weatherReadA = weatherA?.data?.[0];
   const weatherReadB = weatherB?.data?.[0];
 
-  function setA(slug: string) {
-    const url = new URLSearchParams({ a: slug, b: slugB });
+  function setA(value: string) {
+    const url = new URLSearchParams({ a: value, b: buildStateDistrictKey(stateB, slugB) });
     router.replace(`/${locale}/compare?${url.toString()}`);
   }
-  function setB(slug: string) {
-    const url = new URLSearchParams({ a: slugA, b: slug });
+  function setB(value: string) {
+    const url = new URLSearchParams({ a: buildStateDistrictKey(stateA, slugA), b: value });
     router.replace(`/${locale}/compare?${url.toString()}`);
   }
 

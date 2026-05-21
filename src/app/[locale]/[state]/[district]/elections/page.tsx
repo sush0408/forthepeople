@@ -55,7 +55,7 @@ function ElectionsPageInner({ params }: { params: Promise<{ locale: string; stat
           ? `The ${sc.lastElectionYear} ${sc.lastElectionType} election results are the most recent.`
           : "Results shown are from the most recent elections.";
         return (
-          <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", borderRadius: 8, borderLeft: "3px solid #D97706" }}>
+          <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", border: "1px solid #E8E8E4", borderRadius: 8 }}>
             This page shows assembly and parliamentary election results for constituencies in this district, sourced from the Election Commission of India (ECI). Results include winner names, party affiliations, vote counts, margins of victory, and voter turnout percentages. {electionInfo}
           </p>
         );

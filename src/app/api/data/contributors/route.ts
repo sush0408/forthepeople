@@ -138,7 +138,7 @@ function notExpired() {
 // Tier strings are display-only; visibility is decided by amount so a
 // one-time ₹50,000 donor is treated identically to a tagged "patron"
 // subscriber.
-export const VISIBILITY_THRESHOLD = {
+const VISIBILITY_THRESHOLD = {
   national: 9999,   // homepage + every district page
   state:    1999,   // every district page in that state
   district: 99,     // a specific district page

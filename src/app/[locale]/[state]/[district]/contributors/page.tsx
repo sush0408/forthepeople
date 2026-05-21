@@ -6,6 +6,7 @@
 
 import type { Metadata } from "next";
 import { getState, getDistrict } from "@/lib/constants/districts";
+import { localizedDistrictUrl } from "@/lib/site-metadata";
 import ContributorsClient from "./ContributorsClient";
 
 interface Props {
@@ -13,11 +14,17 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { state, district } = await params;
+  const { locale, state, district } = await params;
   const d = getDistrict(state, district);
   return {
     title: `Contributors — ${d?.name ?? district} | ForThePeople.in`,
     description: `People who support ${d?.name ?? district}'s open data dashboard on ForThePeople.in`,
+    alternates: { canonical: localizedDistrictUrl(locale, state, district, "contributors") },
+    openGraph: {
+      url: localizedDistrictUrl(locale, state, district, "contributors"),
+      title: `Contributors — ${d?.name ?? district} | ForThePeople.in`,
+      description: `People who support ${d?.name ?? district}'s open data dashboard on ForThePeople.in`,
+    },
   };
 }
 

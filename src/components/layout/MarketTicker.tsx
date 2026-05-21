@@ -213,7 +213,6 @@ export default function MarketTicker() {
               color: "#C0C0BA",
               whiteSpace: "nowrap",
               flexShrink: 0,
-              borderLeft: "1px solid #F0F0EC",
             }}
             className="hidden md:block"
           >

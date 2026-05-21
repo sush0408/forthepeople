@@ -5,11 +5,12 @@
  */
 
 import { defineRouting } from "next-intl/routing";
+import { LOCALE_CODES } from "./locales";
 
 export const routing = defineRouting({
-  locales: ["en", "kn"],   // English + Kannada (pilot)
+  locales: LOCALE_CODES,
   defaultLocale: "en",
-  localePrefix: "always",  // /en/... and /kn/...
+  localePrefix: "always",
 });
 
 export type Locale = (typeof routing.locales)[number];

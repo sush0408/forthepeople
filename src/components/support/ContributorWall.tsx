@@ -6,10 +6,10 @@
 
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Instagram, Linkedin, Github, Twitter, ExternalLink } from "lucide-react";
 import type { ContributorsResponse, ContributorItem } from "@/app/api/payment/contributors/route";
+import LocaleLink from "@/components/common/LocaleLink";
 import { normalizeSocialLink } from "@/lib/social-link";
 
 const TIER_EMOJI: Record<string, string> = {
@@ -180,9 +180,9 @@ export default function ContributorWall() {
                   </span>
                 )}
               </h2>
-              <Link href="/en/contributors" style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 600 }}>
+              <LocaleLink href="/contributors" style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 600 }}>
                 View all →
-              </Link>
+              </LocaleLink>
             </div>
             <div style={{ background: "#FAFAF8", border: "1px solid #E8E8E4", borderRadius: 14, padding: "16px", overflow: "hidden" }}>
               <div style={{ overflow: "hidden" }}>
@@ -216,9 +216,9 @@ export default function ContributorWall() {
               </div>
             )}
             {oneTimeTotal > 50 && (
-              <Link href="/en/contributors?filter=one-time" style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 600 }}>
+              <LocaleLink href="/contributors?filter=one-time" style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", fontWeight: 600 }}>
                 View all {oneTimeTotal.toLocaleString("en-IN")} →
-              </Link>
+              </LocaleLink>
             )}
           </div>
         </div>

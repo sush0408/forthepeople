@@ -12,6 +12,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { cacheGet, cacheSet } from "@/lib/cache";
+import { getHomepagePreviewFallback } from "@/lib/data-fallbacks";
+import {
+  dedupeLatestPreviewItems,
+  normalizePreviewLabel,
+  normalizePreviewTimestamp,
+  roundPreviewMetric,
+} from "@/lib/homepage-preview";
 
 const CACHE_KEY = "ftp:homepage-preview:v1";
 
@@ -25,8 +32,24 @@ export async function GET() {
     // Get active districts
     const activeDistricts = await prisma.district.findMany({
       where: { active: true },
+      orderBy: [{ state: { slug: "asc" } }, { name: "asc" }],
       select: { id: true, slug: true, name: true, nameLocal: true, tagline: true, state: { select: { slug: true } } },
     });
+    if (activeDistricts.length === 0) {
+      return NextResponse.json(getHomepagePreviewFallback("no-active-districts-in-db"));
+    }
+    const districtMetaById = new Map(
+      activeDistricts.map((district) => [
+        district.id,
+        {
+          districtName: district.name,
+          districtSlug: district.slug,
+          stateSlug: (district as { state?: { slug: string } }).state?.slug ?? "karnataka",
+        },
+      ]),
+    );
+    const getDistrictMeta = (districtId: string | null) =>
+      districtId ? districtMetaById.get(districtId) : undefined;
 
     // For each district, fetch latest weather, dam, crop in one pass
     const previews = await Promise.all(
@@ -66,31 +89,31 @@ export async function GET() {
           tagline: d.tagline,
           weather: weather
             ? {
-                temp: weather.temperature ? Math.round(weather.temperature) : null,
-                conditions: weather.conditions,
+                temp: roundPreviewMetric(weather.temperature),
+                conditions: normalizePreviewLabel(weather.conditions),
               }
             : null,
           dam: dam
             ? {
-                name: dam.damName,
-                storagePct: Math.round(dam.storagePct),
+                name: normalizePreviewLabel(dam.damName) ?? "Unnamed reservoir",
+                storagePct: roundPreviewMetric(dam.storagePct) ?? 0,
               }
             : null,
           crop: crop
             ? {
-                commodity: crop.commodity,
-                price: Math.round(crop.modalPrice),
+                commodity: normalizePreviewLabel(crop.commodity) ?? "Unknown commodity",
+                price: roundPreviewMetric(crop.modalPrice) ?? 0,
               }
             : null,
           news: news
             ? {
-                title: news.title,
-                source: news.source,
+                title: normalizePreviewLabel(news.title) ?? "Latest district update",
+                source: normalizePreviewLabel(news.source) ?? "Official source",
                 publishedAt: news.publishedAt.toISOString(),
               }
             : null,
           healthGrade: healthScore?.grade ?? null,
-          healthScore: healthScore ? Math.round(healthScore.overallScore) : null,
+          healthScore: roundPreviewMetric(healthScore?.overallScore),
         };
       })
     );
@@ -104,22 +127,30 @@ export async function GET() {
     });
 
     // Deduplicate by commodity, keep latest
-    const seenCommodities = new Set<string>();
-    const latestCrops = topCrops
-      .filter((c) => {
-        if (seenCommodities.has(c.commodity)) return false;
-        seenCommodities.add(c.commodity);
-        return true;
-      })
-      .slice(0, 3);
+    const latestCrops = dedupeLatestPreviewItems(topCrops, (crop) => crop.commodity, 3)
+      .map((crop) => ({
+        ...crop,
+        commodity: normalizePreviewLabel(crop.commodity) ?? "Unknown commodity",
+        modalPrice: roundPreviewMetric(crop.modalPrice) ?? 0,
+        districtName: getDistrictMeta(crop.districtId)?.districtName ?? "Unknown district",
+        districtSlug: getDistrictMeta(crop.districtId)?.districtSlug ?? "",
+        stateSlug: getDistrictMeta(crop.districtId)?.stateSlug ?? "",
+      }));
 
     // Latest news across all districts
-    const latestNews = await prisma.newsItem.findMany({
+    const latestNews = (await prisma.newsItem.findMany({
       where: { districtId: { in: activeDistricts.map((d) => d.id) } },
       orderBy: { publishedAt: "desc" },
       take: 3,
       select: { title: true, source: true, publishedAt: true, districtId: true },
-    });
+    })).map((news) => ({
+      title: normalizePreviewLabel(news.title) ?? "Latest district update",
+      source: normalizePreviewLabel(news.source) ?? "Official source",
+      publishedAt: normalizePreviewTimestamp(news.publishedAt) ?? "",
+      districtName: getDistrictMeta(news.districtId)?.districtName ?? "Unknown district",
+      districtSlug: getDistrictMeta(news.districtId)?.districtSlug ?? "",
+      stateSlug: getDistrictMeta(news.districtId)?.stateSlug ?? "",
+    }));
 
     // Dam levels for the dams card
     const latestDams = await prisma.damReading.findMany({
@@ -129,14 +160,15 @@ export async function GET() {
       select: { damName: true, storagePct: true, districtId: true },
     });
     // Deduplicate by damName
-    const seenDams = new Set<string>();
-    const uniqueDams = latestDams
-      .filter((d) => {
-        if (seenDams.has(d.damName)) return false;
-        seenDams.add(d.damName);
-        return true;
-      })
-      .slice(0, 3);
+    const uniqueDams = dedupeLatestPreviewItems(latestDams, (dam) => dam.damName, 3)
+      .map((dam) => ({
+        ...dam,
+        damName: normalizePreviewLabel(dam.damName) ?? "Unnamed reservoir",
+        storagePct: roundPreviewMetric(dam.storagePct) ?? 0,
+        districtName: getDistrictMeta(dam.districtId)?.districtName ?? "Unknown district",
+        districtSlug: getDistrictMeta(dam.districtId)?.districtSlug ?? "",
+        stateSlug: getDistrictMeta(dam.districtId)?.stateSlug ?? "",
+      }));
 
     const result = {
       districtPreviews: previews,
@@ -152,6 +184,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[homepage-preview]", err);
-    return NextResponse.json({ districtPreviews: [], topCrops: [], latestNews: [], latestDams: [], fromCache: false, error: true });
+    return NextResponse.json(getHomepagePreviewFallback());
   }
 }

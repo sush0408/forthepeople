@@ -16,7 +16,71 @@
     "title": "India — Select Your District",
     "comingSoon": "Coming Soon",
     "activeState": "Active",
-    "selectDistrict": "Select a district to explore"
+    "selectDistrict": "Select a district to explore",
+    "loading": "Loading map...",
+    "sectionHint": "Click a live district to explore, or request one that is still locked",
+    "boundariesQueuedTitle": "District boundaries are queued",
+    "boundariesQueuedBody": "We have public sources identified; this state needs a normalized GeoJSON file.",
+    "exploreAction": "Explore",
+    "requestAction": "Click to request",
+    "requestAdded": "Request added for {district}",
+    "requestFailed": "Could not request {district}",
+    "activeLegend": "Active",
+    "requestLegend": "Request"
+  },
+  "home": {
+    "requestCard": {
+      "title": "Expanding to 780+ districts",
+      "subtitle": "Tell us which district should go live next.",
+      "coverageLabel": "Coverage",
+      "coverageValue": "{count} / 780 live",
+      "mostRequested": "Most requested: {district}, {state}",
+      "mostRequestedCount": "{district}, {state} currently has {count} public requests.",
+      "empty": "No public requests yet. Pick a state and nominate the next district to launch.",
+      "success": "Request submitted. We'll prioritise {district}.",
+      "requestAnother": "Request another",
+      "instructions": "Choose a state first, then pick one district still waiting to go live.",
+      "selectState": "Select state",
+      "selectDistrict": "Select district",
+      "statePendingOption": "{state} ({count} pending)",
+      "stateCoveredOption": "{state} (all live)",
+      "noPending": "No pending districts",
+      "requestCta": "Request",
+      "sending": "Sending...",
+      "remainingHintOne": "{count} district still waiting in {state}.",
+      "remainingHintMany": "{count} districts still waiting in {state}.",
+      "coveredHint": "All known districts in {state} are already live. Pick another state or vote on upcoming features.",
+      "submitError": "Could not submit your district request right now. Please try again.",
+      "voteFeatures": "Vote on upcoming features"
+    },
+    "stats": {
+      "districtsLive": "Districts live",
+      "dashboardsPerDistrict": "Dashboards / district",
+      "dataPointsTracked": "Data points tracked",
+      "districtsComing": "Districts coming",
+      "lastUpdated": "Last updated",
+      "fallbackStatus": "Showing district coverage while local homepage stats reconnect.",
+      "liveStatus": "Data refreshes every 5-30 minutes from official government portals."
+    },
+    "preview": {
+      "eyebrow": "Live data right now",
+      "noActiveDistrictsStatus": "No active districts are available in the local database yet. Showing static coverage only.",
+      "fallbackStatus": "Showing district coverage while live homepage feeds reconnect.",
+      "liveStatus": "Live homepage cards refresh as new district data lands.",
+      "cropsTitle": "Today's crop prices",
+      "cropsLink": "All prices ->",
+      "cropsEmpty": "Awaiting the latest market-day crop sync for active districts.",
+      "damsTitle": "Dam levels",
+      "damsLink": "Full report ->",
+      "damsEmpty": "Awaiting the first dam-level sync for active districts.",
+      "newsTitle": "Latest news",
+      "newsLink": "All news ->",
+      "newsEmpty": "No recent district headlines are available yet.",
+      "weatherTitle": "Weather",
+      "weatherLink": "Full forecast ->",
+      "weatherOverflow": "+{count} more active districts in the full weather dashboard",
+      "weatherEmpty": "Awaiting the first weather reading for active districts."
+    }
   },
   "district": {
     "overview": "Overview",
@@ -72,8 +136,80 @@
     "back": "Back",
     "updated": "Updated"
   },
+  "emptyState": {
+    "message": "Official district data for {module} is still being connected.",
+    "availableSoon": "This module appears here once official district data is available.",
+    "titles": {
+      "weather": "Weather",
+      "crops": "Crop Prices",
+      "water": "Dam Levels",
+      "news": "News & Updates",
+      "leadership": "Leadership",
+      "finance": "Finance & Budget",
+      "budget": "Budget & Revenue",
+      "schools": "Schools",
+      "health": "Health",
+      "elections": "Elections",
+      "police": "Police & Traffic",
+      "transport": "Transport",
+      "jjm": "Water Supply (JJM)",
+      "housing": "Housing Schemes",
+      "power": "Power & Outages",
+      "rti": "RTI Tracker",
+      "courts": "Courts & Judiciary",
+      "gram-panchayat": "Gram Panchayat",
+      "industries": "Local Industries",
+      "farm": "Farm Advisory",
+      "population": "Population",
+      "infrastructure": "Infrastructure",
+      "schemes": "Government Schemes",
+      "alerts": "Local Alerts",
+      "default": "Data"
+    }
+  },
+  "noDataCard": {
+    "title": "Data being prepared",
+    "body": "{module} data for {district} is still being added from official district and state sources.",
+    "note": "ForThePeople.in republishes public-source government data and shows this module once verified district data is available.",
+    "alerts": {
+      "title": "Alert feed not live yet",
+      "body": "We have not connected a verified alert feed for {district} yet. This card stays quiet until an official district source is available."
+    },
+    "power": {
+      "title": "Power outage feed being connected",
+      "body": "{module} for {district} is still being connected from {source}. Use the official portal in the meantime.",
+      "portalLabel": "Open official outage portal"
+    },
+    "transport": {
+      "title": "Transport data being connected",
+      "body": "{module} for {district} is still being connected from {source} and public rail sources."
+    },
+    "urban": {
+      "title": "Not applicable for this urban district",
+      "body": "{module} is primarily a rural-data surface, so {district} does not show a district feed here."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "This page doesn't exist, or the district / module you're looking for hasn't been added yet.",
+    "home": "Go Home",
+    "about": "About ForThePeople"
+  },
+  "support": {
+    "banner": {
+      "loading": "Loading contributor count…",
+      "refreshing": "Contributor count is refreshing. The leaderboard is still available.",
+      "unavailable": "Contributor count is temporarily unavailable. The leaderboard is still available.",
+      "empty": "No public supporters are visible yet. Be the first to back India's data revolution.",
+      "supportersSuffix": "people already backing India's data revolution",
+      "viewLeaderboard": "View leaderboard"
+    }
+  },
   "footer": {
     "disclaimer": "Independent citizen initiative. NOT an official government website. Data under NDSAP.",
+    "disclaimerLink": "Disclaimer",
+    "disclaimerArrow": "Disclaimer →",
+    "builtByPrefix": "Built by",
     "builtBy": "Built by Jayanth M B"
   }
 }

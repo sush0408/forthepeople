@@ -5,7 +5,7 @@
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
+import LocaleLink from "@/components/common/LocaleLink";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://forthepeople.in";
 
@@ -47,7 +47,7 @@ export default function AboutPage() {
 
       {/* Hero */}
       <div style={{ marginBottom: 40 }}>
-        <Link href="/" style={{ fontSize: 13, color: "#9B9B9B", textDecoration: "none", display: "inline-block", marginBottom: 16 }}>← ForThePeople.in</Link>
+        <LocaleLink href="/" style={{ fontSize: 13, color: "#9B9B9B", textDecoration: "none", display: "inline-block", marginBottom: 16 }}>← ForThePeople.in</LocaleLink>
         <h1 style={{ fontSize: 36, fontWeight: 800, color: "#1A1A1A", letterSpacing: "-0.6px", lineHeight: 1.2, marginBottom: 16 }}>
           Your District.<br />Your Data.<br /><span style={{ color: "#2563EB" }}>Your Right.</span>
         </h1>
@@ -136,11 +136,11 @@ export default function AboutPage() {
       <p style={{ fontSize: 14, color: "#4B4B4B", lineHeight: 1.7, marginBottom: 12 }}>
         Every data point is sourced from official government portals, public APIs, and gazetted documents.
         We document every source on our{" "}
-        <Link href="/en/karnataka/mandya/data-sources" style={{ color: "#2563EB" }}>Data Sources</Link>{" "}
+        <LocaleLink href="/karnataka/mandya/data-sources" style={{ color: "#2563EB" }}>Data Sources</LocaleLink>{" "}
         page for each district.
       </p>
       <p style={{ fontSize: 14, color: "#4B4B4B", lineHeight: 1.7, marginBottom: 40 }}>
-        If you find an error, please <Link href="/contribute" style={{ color: "#2563EB" }}>let us know</Link>.
+        If you find an error, please <LocaleLink href="/contribute" style={{ color: "#2563EB" }}>let us know</LocaleLink>.
         We will correct it within 24 hours and publish the correction.
       </p>
 
@@ -156,12 +156,12 @@ export default function AboutPage() {
 
       {/* CTA */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <Link href="/" style={{ padding: "12px 22px", background: "#2563EB", color: "#FFF", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+        <LocaleLink href="/" style={{ padding: "12px 22px", background: "#2563EB", color: "#FFF", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
           Explore Your District
-        </Link>
-        <Link href="/contribute" style={{ padding: "12px 22px", background: "#FFF", border: "1px solid #E8E8E4", color: "#1A1A1A", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+        </LocaleLink>
+        <LocaleLink href="/contribute" style={{ padding: "12px 22px", background: "#FFF", border: "1px solid #E8E8E4", color: "#1A1A1A", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
           Contribute
-        </Link>
+        </LocaleLink>
       </div>
     </div>
   );

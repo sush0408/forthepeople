@@ -2,14 +2,15 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { resolveDistrictName, serializeForJson } from "@/lib/tenders/tender-helpers";
+import { resolveActiveTenderDistrictIdentity, serializeForJson } from "@/lib/tenders/tender-helpers";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, ctx: { params: Promise<{ district: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ district: string }> }) {
   const { district: districtSlug } = await ctx.params;
-  const districtName = await resolveDistrictName(districtSlug);
-  if (!districtName) {
+  const stateSlug = new URL(req.url).searchParams.get("state");
+  const district = await resolveActiveTenderDistrictIdentity(districtSlug, stateSlug);
+  if (!district) {
     return NextResponse.json({ error: { code: "DISTRICT_NOT_ACTIVE", message: `District '${districtSlug}' is not active.` } }, { status: 404 });
   }
 
@@ -19,7 +20,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ district: stri
   const in14d = new Date(now.getTime() + 14 * 86400_000);
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 86400_000);
 
-  const baseLocation = { locationDistrict: districtName };
+  const baseLocation = {
+    locationDistrict: district.districtName,
+    locationState: district.stateName,
+  };
   const live = { ...baseLocation, bidSubmissionEnd: { gte: now } };
 
   const [
@@ -37,7 +41,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ district: stri
     redFlaggedLive,
     lastCheckedAgg,
     nextDeadlineRow,
-    districtFlag,
   ] = await Promise.all([
     prisma.tender.count({ where: live }),
     prisma.tender.aggregate({ where: live, _sum: { estimatedValueInr: true } }),
@@ -62,12 +65,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ district: stri
       orderBy: { bidSubmissionEnd: "asc" },
       select: { id: true, title: true, bidSubmissionEnd: true },
     }),
-    // Activation flag — used to determine snippet status = LOCKED.
-    prisma.district.findFirst({ where: { name: districtName }, select: { tendersActive: true } }),
   ]);
 
   // Snippet status derivation
-  const tendersActive = districtFlag?.tendersActive ?? false;
+  const tendersActive = district.tendersActive;
   const lastCheckedAt = lastCheckedAgg._max.lastCheckedAt ?? null;
   let snippetStatus: "LIVE" | "STALE" | "LOCKED" | "NO_DATA";
   if (!tendersActive) snippetStatus = "LOCKED";
@@ -98,7 +99,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ district: stri
   const categoryMap = new Map(catRows.map((c) => [c.id, c]));
 
   return NextResponse.json(serializeForJson({
-    districtName,
+    districtName: district.districtName,
     tendersActive,
     snippetStatus,
     lastCheckedAt: lastCheckedAt?.toISOString() ?? null,

@@ -85,7 +85,7 @@ export default function InfraSnippet({
   district: string; state: string; base: string;
 }) {
   const { data } = useQuery<ApiResponse>({
-    queryKey: ["district", district, "infrastructure", "snippet"],
+    queryKey: ["district", state, district, "infrastructure", "snippet"],
     queryFn: () => fetch(`/api/data/infrastructure?district=${district}&state=${state}`).then((r) => r.json()),
     staleTime: 5 * 60_000,
   });

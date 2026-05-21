@@ -7,6 +7,7 @@
 "use client";
 
 import { Info } from "lucide-react";
+import { formatRelativeFreshness } from "@/lib/data-freshness";
 
 interface DataSourceBannerProps {
   moduleName: string;
@@ -16,28 +17,21 @@ interface DataSourceBannerProps {
   isLive?: boolean;
 }
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
-}
+export default function DataSourceBanner({ moduleName, sources, lastUpdated, updateFrequency, isLive }: DataSourceBannerProps) {
+  const freshness = formatRelativeFreshness(lastUpdated);
+  const hasLastUpdated = Boolean(lastUpdated);
 
-export default function DataSourceBanner({ sources, lastUpdated, updateFrequency, isLive }: DataSourceBannerProps) {
   return (
     <div
+      aria-label={`${moduleName} data sources and freshness`}
       style={{
         fontSize: 12,
         color: "#6B6B6B",
         lineHeight: 1.6,
         padding: "10px 14px",
         background: "#FAFAF8",
+        border: "1px solid #E8E8E4",
         borderRadius: 8,
-        borderLeft: "3px solid #2563EB",
         marginBottom: 14,
       }}
     >
@@ -47,9 +41,8 @@ export default function DataSourceBanner({ sources, lastUpdated, updateFrequency
           <span>
             Data sourced from{" "}
             <strong style={{ color: "#4B4B4B" }}>{sources.join(", ")}</strong>.
-            {lastUpdated && (
-              <> Last updated: <strong>{timeAgo(lastUpdated)}</strong>.</>
-            )}
+            {" "}Freshness:{" "}
+            <strong style={{ color: hasLastUpdated ? "#374151" : "#92400E" }}>{freshness}</strong>.
             {" "}Update frequency: {updateFrequency}.
             {isLive && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, marginLeft: 6, color: "#16A34A", fontWeight: 600 }}>

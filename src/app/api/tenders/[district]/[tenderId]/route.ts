@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { resolveDistrictName, serializeForJson } from "@/lib/tenders/tender-helpers";
+import { resolveActiveTenderDistrictIdentity, serializeForJson } from "@/lib/tenders/tender-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +15,22 @@ type TimelineEvent = {
 };
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ district: string; tenderId: string }> },
 ) {
   const { district: districtSlug, tenderId } = await ctx.params;
-  const districtName = await resolveDistrictName(districtSlug);
-  if (!districtName) {
+  const stateSlug = new URL(req.url).searchParams.get("state");
+  const district = await resolveActiveTenderDistrictIdentity(districtSlug, stateSlug);
+  if (!district) {
     return NextResponse.json({ error: { code: "DISTRICT_NOT_ACTIVE", message: `District '${districtSlug}' is not active.` } }, { status: 404 });
   }
 
   const tender = await prisma.tender.findFirst({
-    where: { id: tenderId, locationDistrict: districtName },
+    where: {
+      id: tenderId,
+      locationDistrict: district.districtName,
+      locationState: district.stateName,
+    },
     include: {
       authority: true,
       category: true,
@@ -39,7 +44,7 @@ export async function GET(
     },
   });
   if (!tender) {
-    return NextResponse.json({ error: { code: "TENDER_NOT_FOUND", message: `Tender ${tenderId} not found in ${districtName}.` } }, { status: 404 });
+    return NextResponse.json({ error: { code: "TENDER_NOT_FOUND", message: `Tender ${tenderId} not found in ${district.districtName}.` } }, { status: 404 });
   }
 
   const now = new Date();

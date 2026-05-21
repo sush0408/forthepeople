@@ -103,12 +103,20 @@ export default function EligibilityWizard({ eligibility, tenderMseReserved, tend
   }, [eligibility, profile, tenderMseReserved]);
 
   const toggleReg = (r: string) => setProfile((p) => ({ ...p, registrationTypes: p.registrationTypes.includes(r) ? p.registrationTypes.filter((x) => x !== r) : [...p.registrationTypes, r] }));
+  const passCount = "passes" in matches && matches.passes ? matches.passes.length : 0;
+  const issueCount = "issues" in matches && matches.issues ? matches.issues.length : 0;
+  const selectedRegs = profile.registrationTypes.length;
 
   return (
     <div style={{ border: "1px solid #E8E8E4", borderRadius: 10, padding: 16, background: "#FFFFFF" }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 12 }}>Can I apply? (client-side check)</div>
       <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 14 }}>
-        Your answers never leave this browser. Matching runs against the tender's published eligibility criteria. Information only — not legal advice.
+        Your answers never leave this browser. Matching runs against the tender&apos;s published eligibility criteria. Information only, not legal advice.
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 16 }}>
+        <StatCard label="Checks passed" value={String(passCount)} tone="#166534" bg="#F0FDF4" border="#BBF7D0" />
+        <StatCard label="Blockers found" value={String(issueCount)} tone="#B91C1C" bg="#FEF2F2" border="#FECACA" />
+        <StatCard label="Regs selected" value={String(selectedRegs)} tone="#1D4ED8" bg="#EFF6FF" border="#BFDBFE" />
       </div>
 
       <div style={{ display: "grid", gap: 14 }}>
@@ -137,18 +145,26 @@ export default function EligibilityWizard({ eligibility, tenderMseReserved, tend
           <label style={formLabel}>Registration (select all that apply)</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {REG_OPTIONS.map((r) => (
-              <button key={r} onClick={() => toggleReg(r)} style={{
+              <button
+                key={r}
+                type="button"
+                onClick={() => toggleReg(r)}
+                style={{
                 padding: "4px 10px", fontSize: 12, borderRadius: 6,
                 border: profile.registrationTypes.includes(r) ? "1px solid #2563EB" : "1px solid #D1D5DB",
                 background: profile.registrationTypes.includes(r) ? "#EFF6FF" : "#FFFFFF",
                 color: profile.registrationTypes.includes(r) ? "#1D4ED8" : "#374151",
                 cursor: "pointer",
-              }}>{r}</button>
+                fontWeight: profile.registrationTypes.includes(r) ? 700 : 500,
+              }}
+              >
+                {r}
+              </button>
             ))}
           </div>
         </div>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <label style={checkboxLabel}><input type="checkbox" checked={profile.isMse} onChange={(e) => setProfile((p) => ({ ...p, isMse: e.target.checked }))} /> I'm Udyam-registered (MSE)</label>
+          <label style={checkboxLabel}><input type="checkbox" checked={profile.isMse} onChange={(e) => setProfile((p) => ({ ...p, isMse: e.target.checked }))} /> I&apos;m Udyam-registered (MSE)</label>
           <label style={checkboxLabel}><input type="checkbox" checked={profile.isStartup} onChange={(e) => setProfile((p) => ({ ...p, isStartup: e.target.checked }))} /> I have DPIIT Startup recognition</label>
           <label style={checkboxLabel}><input type="checkbox" checked={profile.hasDsc} onChange={(e) => setProfile((p) => ({ ...p, hasDsc: e.target.checked }))} /> I have a Class-3 DSC</label>
         </div>
@@ -185,3 +201,12 @@ export default function EligibilityWizard({ eligibility, tenderMseReserved, tend
 const formLabel: React.CSSProperties = { display: "block", fontSize: 11, color: "#6B7280", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 4 };
 const formField: React.CSSProperties = { width: "100%", padding: "8px 10px", fontSize: 13, borderRadius: 8, border: "1px solid #D1D5DB", background: "#FFFFFF", color: "#0F172A" };
 const checkboxLabel: React.CSSProperties = { display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#374151" };
+
+function StatCard({ label, value, tone, bg, border }: { label: string; value: string; tone: string; bg: string; border: string }) {
+  return (
+    <div style={{ border: `1px solid ${border}`, background: bg, borderRadius: 10, padding: "10px 12px" }}>
+      <div style={{ fontSize: 10, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: tone }}>{value}</div>
+    </div>
+  );
+}

@@ -5,7 +5,7 @@
  * Two-step generation: first click fetches cost estimate, second click confirms.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Bot, RefreshCw, Sparkles } from "lucide-react";
 
@@ -58,23 +58,25 @@ export default function PlatformReportCard() {
   const [confirmPrompt, setConfirmPrompt] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
+  useEffect(() => {
+    let cancelled = false;
+
     fetch("/api/admin/platform-report")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: ApiResponse | null) => {
-        if (d) {
-          setReport(d.report);
-          setEstimate(d.estimate);
-        }
+        if (!d || cancelled) return;
+        setReport(d.report);
+        setEstimate(d.estimate);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-  useEffect(() => {
-    load();
-  }, [load]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const generate = async () => {
     setGenerating(true);

@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import TenderDisclaimer from "@/components/tenders/TenderDisclaimer";
-import RedFlagBadge from "@/components/tenders/RedFlagBadge";
 import { formatInr } from "@/lib/tenders/format";
 import ModuleErrorBoundary from "@/components/common/ModuleErrorBoundary";
+import { buildTenderQueryKey, buildTenderQuerySearch } from "@/lib/tenders/ui";
 
 type TransparencyResp = {
   districtName: string;
@@ -29,13 +29,15 @@ export default function TransparencyPage({ params }: { params: Promise<{ locale:
   const { locale, state: stateSlug, district: districtSlug } = use(params);
 
   const { data, isLoading, error } = useQuery<TransparencyResp>({
-    queryKey: ["tenders-transparency", districtSlug],
+    queryKey: buildTenderQueryKey("transparency", stateSlug, districtSlug),
     queryFn: async () => {
-      const res = await fetch(`/api/tenders/${districtSlug}/transparency`);
+      const res = await fetch(`/api/tenders/${districtSlug}/transparency?${buildTenderQuerySearch(stateSlug)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     },
   });
+  const flagCategoryCount = data ? Object.keys(data.flagGroups).length : 0;
+  const totalFlags = data ? Object.values(data.flagGroups).reduce((sum, rows) => sum + rows.length, 0) : 0;
 
   return (
     <ModuleErrorBoundary moduleName="TenderTransparency">
@@ -52,9 +54,14 @@ export default function TransparencyPage({ params }: { params: Promise<{ locale:
           <p style={{ fontSize: 14, color: "#475569", marginBottom: 24, maxWidth: 720 }}>
             Data-derived observations on live and recent tenders in {data?.districtName ?? "this district"}. Each label is a mathematical comparison against a published rule (GFR 2017, KTPPA 1999, CVC guidelines). They are not allegations. Legitimate reasons may exist for any individual case.
           </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, marginBottom: 24 }}>
+            <InfoCard label="Tenders checked" value={String(data?.totalTenders ?? 0)} tone="#1D4ED8" bg="#EFF6FF" />
+            <InfoCard label="Flag categories" value={String(flagCategoryCount)} tone="#B45309" bg="#FFF7ED" />
+            <InfoCard label="Total flags" value={String(totalFlags)} tone="#991B1B" bg="#FEF2F2" />
+          </div>
 
           {isLoading && <div style={{ color: "#6B7280" }}>Loading…</div>}
-          {error && <div style={{ color: "#B91C1C" }}>Couldn't load flag data.</div>}
+          {error && <div style={{ color: "#B91C1C" }}>Could not load flag data.</div>}
           {data && data.totalTenders === 0 && (
             <div style={{ padding: 24, border: "1px dashed #86EFAC", borderRadius: 12, color: "#166534", background: "#F0FDF4", textAlign: "center" }}>
               ✓ No flagged tenders in {data.districtName} right now. Flags recompute every 2 hours.
@@ -96,5 +103,14 @@ export default function TransparencyPage({ params }: { params: Promise<{ locale:
         </div>
       </div>
     </ModuleErrorBoundary>
+  );
+}
+
+function InfoCard({ label, value, tone, bg }: { label: string; value: string; tone: string; bg: string }) {
+  return (
+    <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: "12px 14px", background: bg }}>
+      <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: tone }}>{value}</div>
+    </div>
   );
 }

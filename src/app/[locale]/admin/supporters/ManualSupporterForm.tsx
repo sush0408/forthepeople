@@ -1,22 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Plus, X } from "lucide-react";
-
-// Suggested visibility expiry (days from today) by donation amount.
-// These are SUGGESTIONS only — admin can override or leave blank for permanent.
-function suggestedExpiryDays(amount: number): number | null {
-  if (amount <= 0) return null;
-  if (amount < 1000) return 90;     // ₹99-999  → 3 months
-  if (amount < 10000) return 180;   // ₹1k-9,999 → 6 months
-  return 365;                        // ₹10k+    → 12 months
-}
-
-function dateNDaysAhead(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+import { suggestedExpiryDate } from "@/lib/supporter-expiry";
 
 interface District {
   id: string;
@@ -68,6 +54,7 @@ export default function ManualSupporterForm({ districts, states, onCreated }: Pr
   const [referenceNumber, setReferenceNumber] = useState("");
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [expiresAt, setExpiresAt] = useState("");
+  const [expiryTouched, setExpiryTouched] = useState(false);
   const [districtId, setDistrictId] = useState("");
   const [stateId, setStateId] = useState("");
   const [socialLink, setSocialLink] = useState("");
@@ -85,6 +72,7 @@ export default function ManualSupporterForm({ districts, states, onCreated }: Pr
     setReferenceNumber("");
     setPaymentDate(new Date().toISOString().slice(0, 10));
     setExpiresAt("");
+    setExpiryTouched(false);
     setDistrictId("");
     setStateId("");
     setSocialLink("");
@@ -97,7 +85,12 @@ export default function ManualSupporterForm({ districts, states, onCreated }: Pr
     setTier(v);
     const preset = TIERS.find((t) => t.value === v);
     if (preset) {
-      if (preset.amount > 0) setAmount(preset.amount);
+      if (preset.amount > 0) {
+        setAmount(preset.amount);
+        if (!expiryTouched) {
+          setExpiresAt(suggestedExpiryDate(preset.amount) ?? "");
+        }
+      }
       setIsRecurring(preset.isRecurring);
     }
     // Reset location dropdowns when switching to a tier that doesn't use them
@@ -117,16 +110,6 @@ export default function ManualSupporterForm({ districts, states, onCreated }: Pr
     return tier === "district" || tier === "custom" || tier === "chai";
   }, [tier]);
   // Patron / founder are NATIONAL — hide both dropdowns
-
-  // Auto-suggest visibility expiry from amount when user hasn't typed one yet.
-  useEffect(() => {
-    if (expiresAt) return; // respect manual entry
-    const days = suggestedExpiryDays(amount);
-    if (days != null) setExpiresAt(dateNDaysAhead(days));
-    // Intentionally NOT including expiresAt in deps — we only auto-fill once
-    // per amount change, never overwriting a value the admin explicitly typed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amount]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,7 +276,13 @@ export default function ManualSupporterForm({ districts, states, onCreated }: Pr
                   min={1}
                   required
                   value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
+                  onChange={(e) => {
+                    const nextAmount = Number(e.target.value);
+                    setAmount(nextAmount);
+                    if (!expiryTouched) {
+                      setExpiresAt(suggestedExpiryDate(nextAmount) ?? "");
+                    }
+                  }}
                   style={input}
                 />
               </Field>
@@ -325,7 +314,10 @@ export default function ManualSupporterForm({ districts, states, onCreated }: Pr
                 <input
                   type="date"
                   value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
+                  onChange={(e) => {
+                    setExpiryTouched(true);
+                    setExpiresAt(e.target.value);
+                  }}
                   placeholder={isRecurring ? "Leave blank for ongoing" : "Auto 30/60/90d"}
                   style={input}
                 />

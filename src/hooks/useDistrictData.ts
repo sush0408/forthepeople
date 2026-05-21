@@ -11,6 +11,7 @@
 "use client";
 
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
+import { buildDistrictDataQueryKey } from "@/lib/district-data";
 
 export interface ApiMeta {
   module: string;
@@ -48,7 +49,7 @@ export function useDistrictData<T>(
   taluk?: string
 ) {
   return useQuery<ApiResponse<T>, Error>({
-    queryKey: ["district", district, module, taluk],
+    queryKey: buildDistrictDataQueryKey(state, district, module, taluk),
     queryFn: () => fetchDistrictData<T>(module, district, state, taluk),
     enabled: Boolean(district && state),
     staleTime: getStaleTime(module),

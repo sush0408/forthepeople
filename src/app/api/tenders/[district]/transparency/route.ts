@@ -3,14 +3,15 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { resolveDistrictName, serializeForJson } from "@/lib/tenders/tender-helpers";
+import { resolveActiveTenderDistrictIdentity, serializeForJson } from "@/lib/tenders/tender-helpers";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, ctx: { params: Promise<{ district: string }> }) {
+export async function GET(req: Request, ctx: { params: Promise<{ district: string }> }) {
   const { district: districtSlug } = await ctx.params;
-  const districtName = await resolveDistrictName(districtSlug);
-  if (!districtName) {
+  const stateSlug = new URL(req.url).searchParams.get("state");
+  const district = await resolveActiveTenderDistrictIdentity(districtSlug, stateSlug);
+  if (!district) {
     return NextResponse.json({ error: { code: "DISTRICT_NOT_ACTIVE", message: `District '${districtSlug}' is not active.` } }, { status: 404 });
   }
 
@@ -18,7 +19,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ district: stri
 
   const tenders = await prisma.tender.findMany({
     where: {
-      locationDistrict: districtName,
+      locationDistrict: district.districtName,
+      locationState: district.stateName,
       publishedAt: { gte: sixtyDaysAgo },
       redFlags: { some: {} },
     },
@@ -48,7 +50,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ district: stri
   }
 
   return NextResponse.json(serializeForJson({
-    districtName,
+    districtName: district.districtName,
     flagGroups: byFlag,
     totalTenders: tenders.length,
   }));

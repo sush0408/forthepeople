@@ -31,6 +31,10 @@ export async function cacheSet(
 ): Promise<void> {
   try {
     if (!redis) return;
+    if (ttlSeconds <= 0) {
+      await redis.del(key);
+      return;
+    }
     // @upstash/redis uses { ex: seconds } instead of ioredis "EX", seconds
     await redis.set(key, data, { ex: ttlSeconds });
   } catch {

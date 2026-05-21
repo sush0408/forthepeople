@@ -3,7 +3,8 @@
 // Horizontal Gantt-style tender lifecycle timeline.
 // Past events: filled. Current event: pulsing dot. Future: outlined.
 
-import { useMemo } from "react";
+import { useState } from "react";
+import { timelineBounds } from "@/lib/tenders/ui";
 
 export type TimelineEvent = {
   at: string;
@@ -25,13 +26,10 @@ const COLORS: Record<string, string> = {
 };
 
 export default function TenderGanttTimeline({ events }: { events: TimelineEvent[] }) {
-  const { earliest, latest, spanMs } = useMemo(() => {
-    if (events.length === 0) return { earliest: Date.now(), latest: Date.now() + 1, spanMs: 1 };
-    const ts = events.map((e) => new Date(e.at).getTime());
-    const e = Math.min(...ts);
-    const l = Math.max(...ts);
-    return { earliest: e, latest: l, spanMs: Math.max(1, l - e) };
-  }, [events]);
+  const [fallbackNowMs] = useState(() => Date.now());
+  const { earliest, spanMs } = timelineBounds(events, fallbackNowMs);
+  const currentCount = events.filter((event) => event.status === "current").length;
+  const futureCount = events.filter((event) => event.status === "future").length;
 
   if (events.length === 0) {
     return (
@@ -43,7 +41,14 @@ export default function TenderGanttTimeline({ events }: { events: TimelineEvent[
 
   return (
     <div style={{ border: "1px solid #E8E8E4", borderRadius: 10, padding: 16, background: "#FFFFFF" }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 12 }}>Timeline</div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>Timeline</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <span style={metaPill}>{events.length} events</span>
+          {currentCount > 0 && <span style={metaPill}>{currentCount} active</span>}
+          {futureCount > 0 && <span style={metaPill}>{futureCount} upcoming</span>}
+        </div>
+      </div>
       <div style={{ position: "relative", height: 54, marginBottom: 20 }}>
         <div style={{ position: "absolute", left: 0, right: 0, top: 22, height: 4, background: "#EEF2FF", borderRadius: 2 }} />
         {events.map((e, i) => {
@@ -92,3 +97,13 @@ export default function TenderGanttTimeline({ events }: { events: TimelineEvent[
     </div>
   );
 }
+
+const metaPill: React.CSSProperties = {
+  fontSize: 11,
+  color: "#475569",
+  background: "#F8FAFC",
+  border: "1px solid #E2E8F0",
+  borderRadius: 999,
+  padding: "2px 8px",
+  fontWeight: 600,
+};

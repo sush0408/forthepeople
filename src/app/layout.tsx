@@ -4,7 +4,7 @@
  * https://github.com/jayanthmb14/forthepeople
  */
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono, Noto_Sans_Kannada } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -83,6 +83,12 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2563EB",
 };
 
 // WebApplication schema — creator attribution for search engines

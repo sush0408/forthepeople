@@ -2,7 +2,7 @@
  * ForThePeople.in — Your District. Your Data. Your Right.
  * © 2026 Jayanth M B. MIT License with Attribution.
  */
-import Link from "next/link";
+import LocaleLink from "@/components/common/LocaleLink";
 
 type Props = {
   title: string;
@@ -13,12 +13,12 @@ type Props = {
 export default function LegalPageHeader({ title, lastUpdated, backHref = "/" }: Props) {
   return (
     <div style={{ marginBottom: 32 }}>
-      <Link
+      <LocaleLink
         href={backHref}
         style={{ fontSize: 12, color: "#2563EB", textDecoration: "none" }}
       >
         ← Back to ForThePeople.in
-      </Link>
+      </LocaleLink>
       <h1
         style={{
           fontSize: 28,

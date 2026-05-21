@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { formatInr } from "@/lib/tenders/format";
+import { deadlineUrgency, formatPublishedAge } from "@/lib/tenders/ui";
 import CountdownTimer from "./CountdownTimer";
 
 export type TenderCardData = {
@@ -33,49 +35,22 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
   NO_BID:              { bg: "#F3F4F6", color: "#4B5563", label: "No bid received" },
 };
 
-/**
- * Deadline urgency — computed client-side from bidSubmissionEnd.
- *   >7d  : green   (ample time)
- *   2–7d : yellow  (approaching)
- *   <48h : red, pulsing (urgent)
- *   past : grey, dimmed (closed)
- * Rendered as a left border stripe and carries an aria label for a11y.
- */
-function deadlineUrgency(deadlineIso: string): {
-  borderColor: string;
-  pulsing: boolean;
-  dimmed: boolean;
-  ariaLabel: string;
-} {
-  const msLeft = new Date(deadlineIso).getTime() - Date.now();
-  const daysLeft = msLeft / 86400_000;
-  if (msLeft <= 0) {
-    return { borderColor: "#9CA3AF", pulsing: false, dimmed: true, ariaLabel: "Deadline has passed" };
-  }
-  if (daysLeft < 2) {
-    return { borderColor: "#DC2626", pulsing: true, dimmed: false, ariaLabel: `Deadline in ${Math.max(1, Math.round(daysLeft * 24))} hours (urgent)` };
-  }
-  if (daysLeft < 7) {
-    return { borderColor: "#F59E0B", pulsing: false, dimmed: false, ariaLabel: `Deadline in ${Math.ceil(daysLeft)} days (approaching)` };
-  }
-  return { borderColor: "#16A34A", pulsing: false, dimmed: false, ariaLabel: `Deadline in ${Math.ceil(daysLeft)} days (ample time)` };
-}
-
 export default function TenderCard({ tender, districtSlug, stateSlug, locale }: { tender: TenderCardData; districtSlug: string; stateSlug: string; locale: string }) {
+  const [nowMs] = useState(() => Date.now());
   const status = STATUS_STYLE[tender.status] ?? { bg: "#F3F4F6", color: "#4B5563", label: tender.status };
   const flagCount = tender.redFlags.length;
-  const publishedDaysAgo = Math.floor((Date.now() - new Date(tender.publishedAt).getTime()) / 86400_000);
-  const urgency = deadlineUrgency(tender.bidSubmissionEnd);
+  const publishedLabel = formatPublishedAge(tender.publishedAt, nowMs);
+  const urgency = deadlineUrgency(tender.bidSubmissionEnd, nowMs);
   const href = `/${locale}/${stateSlug}/${districtSlug}/tenders/${tender.id}`;
 
   return (
     <Link
       href={href}
       aria-label={urgency.ariaLabel}
+      title={`${tender.authority.name} · ${status.label}`}
       style={{
         display: "block",
-        border: "1px solid #E8E8E4",
-        borderLeft: `4px solid ${urgency.borderColor}`,
+        border: `1px solid ${urgency.dimmed ? "#E8E8E4" : `${urgency.borderColor}55`}`,
         background: "#FFFFFF",
         borderRadius: 12,
         padding: 16,
@@ -90,8 +65,29 @@ export default function TenderCard({ tender, districtSlug, stateSlug, locale }: 
     >
       {/* Line 1: dept + category + location */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
-        <span style={{ fontSize: 11, padding: "2px 8px", background: "#EEF2FF", color: "#4338CA", borderRadius: 6, fontWeight: 600 }}>
+        <span
+          style={{
+            fontSize: 11,
+            padding: "2px 8px",
+            background: "#EEF2FF",
+            color: "#4338CA",
+            borderRadius: 6,
+            fontWeight: 700,
+          }}
+        >
           {tender.authority.shortCode}
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            padding: "2px 8px",
+            background: `${urgency.borderColor}14`,
+            color: urgency.borderColor,
+            borderRadius: 999,
+            fontWeight: 700,
+          }}
+        >
+          {urgency.badgeLabel}
         </span>
         {tender.category && (
           <span style={{ fontSize: 11, padding: "2px 8px", background: "#F3F4F6", color: "#374151", borderRadius: 6 }}>
@@ -136,11 +132,11 @@ export default function TenderCard({ tender, districtSlug, stateSlug, locale }: 
 
       {/* Line 4: timing + corrigendum + flag counts */}
       <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap", fontSize: 12, color: "#6B7280" }}>
-        <span>Published {publishedDaysAgo}d ago</span>
+        <span>{publishedLabel}</span>
         <span>·</span>
         <span>Closes in <CountdownTimer deadline={tender.bidSubmissionEnd} compact /></span>
         {tender._count.corrigenda > 0 && (
-          <span style={{ color: "#B45309" }}>· {tender._count.corrigenda} corrigendum{tender._count.corrigenda > 1 ? "a" : ""}</span>
+          <span style={{ color: "#B45309" }}>· {tender._count.corrigenda} {tender._count.corrigenda === 1 ? "corrigendum" : "corrigenda"}</span>
         )}
         {flagCount > 0 && (
           <span style={{ color: "#991B1B", fontWeight: 600 }}>· ◆ {flagCount} flag{flagCount > 1 ? "s" : ""}</span>

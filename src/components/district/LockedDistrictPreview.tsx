@@ -90,7 +90,7 @@ export default function LockedDistrictPreview({
             </div>
           )}
           {area && (
-            <div style={{ paddingLeft: 20, borderLeft: "1px solid #E8E8E4" }}>
+            <div>
               <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-0.4px", color: "#1A1A1A" }}>
                 {area.toLocaleString("en-IN")}
               </div>
@@ -98,7 +98,7 @@ export default function LockedDistrictPreview({
             </div>
           )}
           {literacy && (
-            <div style={{ paddingLeft: 20, borderLeft: "1px solid #E8E8E4" }}>
+            <div>
               <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-0.4px", color: "#1A1A1A" }}>
                 {literacy}%
               </div>
@@ -106,7 +106,7 @@ export default function LockedDistrictPreview({
             </div>
           )}
           {talukCount && (
-            <div style={{ paddingLeft: 20, borderLeft: "1px solid #E8E8E4" }}>
+            <div>
               <div style={{ fontSize: 18, fontWeight: 800, fontFamily: "var(--font-mono)", letterSpacing: "-0.4px", color: "#1A1A1A" }}>
                 {talukCount}
               </div>

@@ -9,66 +9,51 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
-import { Search, Globe, ChevronDown, Menu, Lock, Users, Github, Heart } from "lucide-react";
+import { Search, Globe, ChevronDown, Menu, Lock, Users, Github, Heart, MapPin } from "lucide-react";
 import { INDIA_STATES, getState, getDistrict, PILOT_STATE, PILOT_DISTRICT } from "@/lib/constants/districts";
+import { SIDEBAR_MODULES } from "@/lib/constants/sidebar-modules";
 import { getStateConfig } from "@/lib/constants/state-config";
+import { SUPPORTED_LOCALES } from "@/i18n/locales";
+import { useI18n } from "@/i18n/I18nProvider";
+import { hasMeaningfulSearchQuery, matchesDistrictSearch, normalizeSearchQuery } from "@/lib/chrome";
+import { buildStateDistrictKey } from "@/lib/district-selection";
+import { withLocalePath } from "@/lib/locale-routing";
 import MobileSidebar from "./MobileSidebar";
 
 // ── Static search index for modules + common queries ───────
 const MODULE_INDEX = [
-  { label: "Weather & Rainfall",    path: "weather",          emoji: "🌦️" },
-  { label: "Crop Prices",           path: "crops",            emoji: "🌾" },
-  { label: "Water & Dams",          path: "water",            emoji: "💧" },
-  { label: "Finance & Budget",      path: "finance",          emoji: "💰" },
-  { label: "Government Schemes",    path: "schemes",          emoji: "📋" },
-  { label: "Schools & Education",   path: "schools",          emoji: "🎓" },
-  { label: "Hospitals & Health",    path: "health",           emoji: "🏥" },
-  { label: "Elections",             path: "elections",        emoji: "🗳️" },
-  { label: "RTI",                   path: "rti",              emoji: "📄" },
-  { label: "Police & Crime",        path: "police",           emoji: "🚔" },
-  { label: "Housing",               path: "housing",          emoji: "🏠" },
-  { label: "MGNREGA / Gram Panchayat", path: "gram-panchayat", emoji: "🏛️" },
-  { label: "JJM Water Supply",      path: "jjm",              emoji: "🚿" },
-  { label: "Power & Outages",       path: "power",            emoji: "⚡" },
-  { label: "Transport & Roads",     path: "transport",        emoji: "🚌" },
-  { label: "News & Updates",        path: "news",             emoji: "📰" },
-  { label: "Leadership & Officials", path: "leadership",      emoji: "👥" },
-  { label: "Local Alerts",          path: "alerts",           emoji: "🚨" },
-  { label: "Citizen Corner",        path: "citizen-corner",   emoji: "🤝" },
-  { label: "Famous Personalities",  path: "famous-personalities", emoji: "⭐" },
-  { label: "Courts & Justice",      path: "courts",           emoji: "⚖️" },
-  { label: "Industries",            path: "industries",       emoji: "🏭" },
-  { label: "Infrastructure",        path: "infrastructure",   emoji: "🔧" },
-  { label: "Soil & Agriculture",    path: "farm",             emoji: "🌱" },
-  { label: "Population",            path: "population",       emoji: "👥" },
-];
-
-// ── All 22 scheduled languages + English ──────────────────
-const LANGUAGES = [
-  { code: "en", name: "English",   nameLocal: "English",        active: true },
-  { code: "kn", name: "Kannada",   nameLocal: "ಕನ್ನಡ",          active: false },
-  { code: "hi", name: "Hindi",     nameLocal: "हिन्दी",           active: false },
-  { code: "te", name: "Telugu",    nameLocal: "తెలుగు",          active: false },
-  { code: "ta", name: "Tamil",     nameLocal: "தமிழ்",            active: false },
-  { code: "ml", name: "Malayalam", nameLocal: "മലയാളം",          active: false },
-  { code: "mr", name: "Marathi",   nameLocal: "मराठी",           active: false },
-  { code: "bn", name: "Bengali",   nameLocal: "বাংলা",           active: false },
-  { code: "gu", name: "Gujarati",  nameLocal: "ગુજરાતી",         active: false },
-  { code: "pa", name: "Punjabi",   nameLocal: "ਪੰਜਾਬੀ",         active: false },
-  { code: "or", name: "Odia",      nameLocal: "ଓଡ଼ିଆ",           active: false },
-  { code: "as", name: "Assamese",  nameLocal: "অসমীয়া",         active: false },
-  { code: "ur", name: "Urdu",      nameLocal: "اردو",            active: false },
-  { code: "sa", name: "Sanskrit",  nameLocal: "संस्कृतम्",        active: false },
-  { code: "ne", name: "Nepali",    nameLocal: "नेपाली",          active: false },
-  { code: "sd", name: "Sindhi",    nameLocal: "سنڌي",           active: false },
-  { code: "ks", name: "Kashmiri",  nameLocal: "कॉशुर",           active: false },
-  { code: "doi", name: "Dogri",    nameLocal: "डोगरी",           active: false },
-  { code: "kok", name: "Konkani",  nameLocal: "कोंकणी",          active: false },
-  { code: "mni", name: "Manipuri", nameLocal: "মৈতৈলোন্",        active: false },
-  { code: "brx", name: "Bodo",     nameLocal: "बड़ो",             active: false },
-  { code: "sat", name: "Santali",  nameLocal: "ᱥᱟᱱᱛᱟᱲᱤ",        active: false },
-  { code: "mai", name: "Maithili", nameLocal: "मैथिली",          active: false },
-];
+  "weather",
+  "crops",
+  "water",
+  "finance",
+  "schemes",
+  "schools",
+  "health",
+  "elections",
+  "rti",
+  "police",
+  "housing",
+  "gram-panchayat",
+  "jjm",
+  "power",
+  "transport",
+  "news",
+  "leadership",
+  "alerts",
+  "citizen-corner",
+  "famous-personalities",
+  "courts",
+  "industries",
+  "infrastructure",
+  "farm",
+  "population",
+].map((slug) => {
+  const moduleDef = SIDEBAR_MODULES.find((item) => item.slug === slug);
+  if (!moduleDef) {
+    throw new Error(`Missing header search module for slug: ${slug}`);
+  }
+  return { label: moduleDef.label, path: moduleDef.slug, icon: moduleDef.icon };
+});
 
 interface HeaderProps {
   locale: string;
@@ -88,6 +73,7 @@ function parsePath(pathname: string) {
 export default function Header({ locale }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useI18n();
   const { state: stateSlug, district: districtSlug, taluk: talukSlug } = parsePath(pathname);
 
   const stateData = stateSlug ? getState(stateSlug) : undefined;
@@ -102,7 +88,14 @@ export default function Header({ locale }: HeaderProps) {
   // Cmd+K / Ctrl+K opens search overlay
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isEditable = target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target instanceof HTMLSelectElement
+        || Boolean(target?.isContentEditable);
+
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        if (isEditable) return;
         e.preventDefault();
         setSearchOpen((v) => !v);
       }
@@ -117,20 +110,19 @@ export default function Header({ locale }: HeaderProps) {
   }, [searchOpen]);
 
   // Search results — districts + modules
-  const q = searchQuery.toLowerCase();
-  const districtResults = searchQuery.length >= 2
+  const q = normalizeSearchQuery(searchQuery);
+  const hasSearchQuery = hasMeaningfulSearchQuery(q);
+  const districtResults = hasSearchQuery
     ? INDIA_STATES.flatMap((s) =>
         s.active
           ? s.districts
-              .filter((d) =>
-                d.name.toLowerCase().includes(q) || d.nameLocal.includes(searchQuery)
-              )
+              .filter((d) => matchesDistrictSearch(searchQuery, d.name, d.nameLocal))
               .map((d) => ({ type: "district" as const, state: s, district: d, label: d.name, sub: s.name }))
           : []
       ).slice(0, 5)
     : [];
 
-  const moduleResults = searchQuery.length >= 2
+  const moduleResults = hasSearchQuery
     ? MODULE_INDEX.filter((m) => m.label.toLowerCase().includes(q)).slice(0, 4).map((m) => ({
         type: "module" as const,
         ...m,
@@ -218,7 +210,7 @@ export default function Header({ locale }: HeaderProps) {
         style={{ alignItems: "center", gap: 4, flex: 1, minWidth: 0, overflow: "visible" }}
         className="hidden md:flex"
       >
-        <BreadcrumbItem label="India" href={`/${locale}`} active={!stateSlug} isFirst />
+        <BreadcrumbItem label={t("places.india", "India")} href={`/${locale}`} active={!stateSlug} isFirst />
 
         <BreadcrumbSep />
         <StateDropdown locale={locale} currentState={stateData} />
@@ -239,11 +231,11 @@ export default function Header({ locale }: HeaderProps) {
       </nav>
 
       {/* Right actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+      <div className="ftp-header-actions" style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
         {/* Search button */}
         <button
           onClick={() => setSearchOpen((v) => !v)}
-          aria-label="Open search (Cmd+K)"
+          aria-label={t("nav.search", "Open search (Cmd+K)")}
           aria-keyshortcuts="Meta+k Control+k"
           style={{
             display: "flex",
@@ -260,7 +252,7 @@ export default function Header({ locale }: HeaderProps) {
           }}
         >
           <Search size={14} aria-hidden="true" />
-          <span className="hidden sm:block">Search</span>
+          <span className="hidden sm:block">{t("nav.search", "Search")}</span>
           <span className="hidden md:block" style={{ fontSize: 11, color: "#9B9B9B", background: "#F0F0EC", border: "1px solid #E8E8E4", borderRadius: 4, padding: "1px 5px", fontFamily: "var(--font-mono)" }}>⌘K</span>
         </button>
 
@@ -274,7 +266,7 @@ export default function Header({ locale }: HeaderProps) {
             />
             <div
               role="dialog"
-              aria-label="Search"
+              aria-label={t("nav.search", "Search")}
               aria-modal="true"
               style={{
                 position: "fixed",
@@ -296,8 +288,8 @@ export default function Header({ locale }: HeaderProps) {
                   ref={searchRef}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search districts, modules, data..."
-                  aria-label="Search"
+                  placeholder={t("nav.searchLong", "Search districts, modules, data...")}
+                  aria-label={t("nav.search", "Search")}
                   style={{ flex: 1, border: "none", outline: "none", fontSize: 15, color: "#1A1A1A", background: "transparent" }}
                 />
                 <button
@@ -313,14 +305,14 @@ export default function Header({ locale }: HeaderProps) {
                   <>
                     {districtResults.length > 0 && (
                       <>
-                        <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9B9B9B" }}>Districts</div>
+                        <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9B9B9B" }}>{t("nav.districts", "Districts")}</div>
                         {districtResults.map(({ state, district }) => (
                           <button
-                            key={district.slug}
+                            key={buildStateDistrictKey(state.slug, district.slug)}
                             onClick={() => { router.push(`/${locale}/${state.slug}/${district.slug}`); setSearchOpen(false); setSearchQuery(""); }}
                             style={{ display: "flex", alignItems: "center", width: "100%", padding: "9px 16px", border: "none", background: "none", cursor: "pointer", textAlign: "left", gap: 10 }}
                           >
-                            <span style={{ fontSize: 16, flexShrink: 0 }}>📍</span>
+                            <MapPin size={16} style={{ color: "#2563EB", flexShrink: 0 }} aria-hidden="true" />
                             <span style={{ fontSize: 14, color: "#1A1A1A", flex: 1 }}>{district.name}</span>
                             <span style={{ fontSize: 12, color: "#9B9B9B" }}>{state.name}</span>
                           </button>
@@ -329,25 +321,25 @@ export default function Header({ locale }: HeaderProps) {
                     )}
                     {moduleResults.length > 0 && (
                       <>
-                        <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9B9B9B" }}>Modules</div>
+                        <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9B9B9B" }}>{t("nav.modules", "Modules")}</div>
                         {moduleResults.map((m) => (
                           <button
                             key={m.path}
                             onClick={() => { router.push(m.href); setSearchOpen(false); setSearchQuery(""); }}
                             style={{ display: "flex", alignItems: "center", width: "100%", padding: "9px 16px", border: "none", background: "none", cursor: "pointer", textAlign: "left", gap: 10 }}
                           >
-                            <span style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true">{m.emoji}</span>
+                            <m.icon size={16} style={{ color: "#6B7280", flexShrink: 0 }} aria-hidden="true" />
                             <span style={{ fontSize: 14, color: "#1A1A1A" }}>{m.label}</span>
                           </button>
                         ))}
                       </>
                     )}
                   </>
-                ) : searchQuery.length >= 2 ? (
-                  <p style={{ padding: "20px 16px", fontSize: 14, color: "#9B9B9B", textAlign: "center" }}>No results for &ldquo;{searchQuery}&rdquo;</p>
+                ) : hasSearchQuery ? (
+                  <p style={{ padding: "20px 16px", fontSize: 14, color: "#9B9B9B", textAlign: "center" }}>{t("nav.noResults", `No results for “${searchQuery}”`, { query: searchQuery })}</p>
                 ) : (
                   <div style={{ padding: "16px" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9B9B9B", marginBottom: 8 }}>Quick Links</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#9B9B9B", marginBottom: 8 }}>{t("nav.quickLinks", "Quick Links")}</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {MODULE_INDEX.slice(0, 8).map((m) => (
                         <button
@@ -361,12 +353,12 @@ export default function Header({ locale }: HeaderProps) {
                           }}
                           style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 10px", background: "#F5F5F0", border: "1px solid #E8E8E4", borderRadius: 8, fontSize: 12, color: "#6B6B6B", cursor: "pointer" }}
                         >
-                          <span aria-hidden="true">{m.emoji}</span> {m.label}
+                          <m.icon size={14} aria-hidden="true" /> {m.label}
                         </button>
                       ))}
                     </div>
                     <p style={{ marginTop: 12, fontSize: 12, color: "#9B9B9B" }}>
-                      Type to search 780+ districts and 25 data modules
+                      {t("nav.searchHint", "Type to search 780+ districts and 25 data modules")}
                     </p>
                   </div>
                 )}
@@ -421,12 +413,12 @@ export default function Header({ locale }: HeaderProps) {
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "#FFF1F2"; }}
         >
           <Heart size={14} fill="#E11D48" />
-          <span className="hidden sm:inline">Support</span>
+          <span className="hidden sm:inline">{t("nav.support", "Support")}</span>
         </Link>
 
         {/* Vote on Features — eye-catching CTA */}
         <Link
-          href="/en/features"
+          href={withLocalePath(locale, "/features")}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -444,8 +436,8 @@ export default function Header({ locale }: HeaderProps) {
           }}
         >
           <span aria-hidden="true">🗳️</span>
-          <span className="hidden sm:inline">Vote on Features</span>
-          <span className="sm:hidden">Vote</span>
+          <span className="hidden sm:inline">{t("nav.voteFeatures", "Vote on Features")}</span>
+          <span className="sm:hidden">{t("nav.vote", "Vote")}</span>
         </Link>
 
         {/* Language selector — all 22 languages */}
@@ -844,11 +836,15 @@ function TalukDropdown({ locale, stateSlug, district, currentTaluk }: {
 function LanguageSelector({ locale, pathname }: { locale: string; pathname: string }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { t } = useI18n();
 
-  const currentLang = LANGUAGES.find((l) => l.code === locale) ?? LANGUAGES[0];
+  const currentLang = SUPPORTED_LOCALES.find((l) => l.code === locale) ?? SUPPORTED_LOCALES[0];
 
   function handleSelect(code: string) {
-    router.push(pathname.replace(`/${locale}`, `/${code}`));
+    const nextPath = pathname.startsWith(`/${locale}`)
+      ? pathname.replace(`/${locale}`, `/${code}`)
+      : `/${code}${pathname}`;
+    router.push(nextPath);
     setOpen(false);
   }
 
@@ -873,7 +869,7 @@ function LanguageSelector({ locale, pathname }: { locale: string; pathname: stri
         }}
       >
         <Globe size={13} aria-hidden="true" />
-        <span className="hidden sm:inline">{currentLang.code === "en" ? "EN" : currentLang.nameLocal}</span>
+        <span className="hidden sm:inline">{currentLang.shortLabel}</span>
       </button>
 
       {open && (
@@ -896,13 +892,13 @@ function LanguageSelector({ locale, pathname }: { locale: string; pathname: stri
             }}
           >
             <div style={{ padding: "6px 12px 8px", fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9B9B9B" }}>
-              Select Language
+              {t("nav.selectLanguage", "Select Language")}
             </div>
-            {LANGUAGES.map((lang) => (
+            {SUPPORTED_LOCALES.map((lang) => (
               <button
                 key={lang.code}
-                onClick={() => { if (lang.active) handleSelect(lang.code); }}
-                title={lang.active ? undefined : "Coming soon"}
+                onClick={() => handleSelect(lang.code)}
+                title={lang.translationStatus === "fallback" ? "Route available; UI falls back to English until translations are completed" : undefined}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -911,22 +907,29 @@ function LanguageSelector({ locale, pathname }: { locale: string; pathname: stri
                   padding: "7px 12px",
                   border: "none",
                   background: lang.code === locale ? "#EFF6FF" : "none",
-                  cursor: lang.active ? "pointer" : "default",
+                  cursor: "pointer",
                   textAlign: "left",
                   gap: 8,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {lang.active
-                    ? <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#16A34A", flexShrink: 0 }} />
-                    : <Lock size={10} style={{ color: "#C0C0BA", flexShrink: 0 }} />
-                  }
-                  <span style={{ fontSize: 14, color: lang.active ? "#1A1A1A" : "#9B9B9B", fontFamily: lang.code === "en" ? "inherit" : "var(--font-regional, system-ui)" }}>
-                    {lang.nameLocal}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: lang.translationStatus === "complete" ? "#16A34A" : "#F59E0B", flexShrink: 0 }} />
+                  <span
+                    dir={lang.dir}
+                    style={{
+                      fontSize: 14,
+                      color: "#1A1A1A",
+                      fontFamily: lang.code === "en" ? "inherit" : "var(--font-regional, system-ui)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {lang.nativeName}
                   </span>
                 </div>
                 <span style={{ fontSize: 11, color: "#9B9B9B" }}>
-                  {lang.active ? lang.name : "Soon"}
+                  {lang.translationStatus === "complete" ? t("nav.available", lang.englishName) : t("nav.preview", "Preview")}
                 </span>
               </button>
             ))}

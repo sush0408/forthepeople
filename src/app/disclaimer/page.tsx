@@ -4,9 +4,9 @@
  * https://github.com/jayanthmb14/forthepeople
  */
 
-import Link from "next/link";
 import type { Metadata } from "next";
 import LegalPageHeader from "@/components/common/LegalPageHeader";
+import LocaleLink from "@/components/common/LocaleLink";
 
 export const metadata: Metadata = {
   title: "Disclaimer — ForThePeople.in",
@@ -105,9 +105,9 @@ export default function DisclaimerPage() {
         <h2 style={h2Style}>11. Errors and Corrections</h2>
         <p style={pStyle}>
           If you find incorrect, outdated, or misleading data, please{" "}
-          <Link href="/contribute" style={{ color: "#2563EB" }}>
+          <LocaleLink href="/contribute" style={{ color: "#2563EB" }}>
             report it here
-          </Link>
+          </LocaleLink>
           . We investigate all reports and typically correct verified errors within 24 hours. Corrections are logged in our public Update Log for transparency.
         </p>
       </section>
@@ -149,13 +149,13 @@ export default function DisclaimerPage() {
         }}
       >
         See also:{" "}
-        <Link href="/privacy" style={{ color: "#2563EB", textDecoration: "none" }}>
+        <LocaleLink href="/privacy" style={{ color: "#2563EB", textDecoration: "none" }}>
           Privacy Policy
-        </Link>
+        </LocaleLink>
         {" · "}
-        <Link href="/about" style={{ color: "#2563EB", textDecoration: "none" }}>
+        <LocaleLink href="/about" style={{ color: "#2563EB", textDecoration: "none" }}>
           About
-        </Link>
+        </LocaleLink>
       </div>
     </div>
   );

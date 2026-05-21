@@ -4,38 +4,36 @@
 // credential-bearing fields — just district identity + boolean flag.
 
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { resolveActiveTenderDistrictIdentity } from "@/lib/tenders/tender-helpers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ district: string }> },
 ) {
   const { district: districtSlug } = await ctx.params;
+  const stateSlug = new URL(req.url).searchParams.get("state");
 
   try {
-    const row = await prisma.district.findFirst({
-      where: { slug: districtSlug, active: true },
-      select: {
-        name: true,
-        slug: true,
-        tendersActive: true,
-        state: { select: { name: true, slug: true } },
-      },
-    });
+    const row = await resolveActiveTenderDistrictIdentity(districtSlug, stateSlug);
     if (!row) {
       return NextResponse.json(
-        { error: { code: "DISTRICT_NOT_ACTIVE", message: `District '${districtSlug}' not active` } },
+        {
+          error: {
+            code: "DISTRICT_NOT_ACTIVE",
+            message: `District '${districtSlug}'${stateSlug ? ` in state '${stateSlug}'` : ""} not active`,
+          },
+        },
         { status: 404 },
       );
     }
     return NextResponse.json({
       tendersActive: row.tendersActive,
-      districtName: row.name,
-      districtSlug: row.slug,
-      stateName: row.state.name,
-      stateSlug: row.state.slug,
+      districtName: row.districtName,
+      districtSlug: row.districtSlug,
+      stateName: row.stateName,
+      stateSlug: row.stateSlug,
     });
   } catch {
     // Fail-open: if the DB is unreachable, default to locked so we don't

@@ -12,8 +12,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { cacheGet, cacheSet } from "@/lib/cache";
+import { getHomepageStatsFallback, shouldUseHomepageStatsFallback } from "@/lib/data-fallbacks";
+import { latestFreshnessIso } from "@/lib/data-freshness";
 
-const CACHE_KEY = "ftp:homepage-stats:v2";
+const CACHE_KEY = "ftp:homepage-stats:v3";
 
 export async function GET() {
   const cached = await cacheGet<object>(CACHE_KEY);
@@ -32,6 +34,8 @@ export async function GET() {
       activeDistricts,
       latestCrop,
       latestWeather,
+      latestDam,
+      latestNews,
     ] = await Promise.all([
       prisma.cropPrice.count(),
       prisma.damReading.count(),
@@ -42,19 +46,31 @@ export async function GET() {
       prisma.district.count({ where: { active: true } }),
       prisma.cropPrice.findFirst({ orderBy: { fetchedAt: "desc" }, select: { fetchedAt: true } }),
       prisma.weatherReading.findFirst({ orderBy: { recordedAt: "desc" }, select: { recordedAt: true } }),
+      prisma.damReading.findFirst({ orderBy: { recordedAt: "desc" }, select: { recordedAt: true } }),
+      prisma.newsItem.findFirst({ orderBy: { publishedAt: "desc" }, select: { publishedAt: true } }),
     ]);
 
     const totalDataPoints = cropCount + damCount + weatherCount + newsCount + leaderCount + schoolCount;
+    const mostRecentAt = latestFreshnessIso([
+      latestCrop?.fetchedAt,
+      latestWeather?.recordedAt,
+      latestDam?.recordedAt,
+      latestNews?.publishedAt,
+    ]);
 
-    // Most recent update across key tables
-    const times = [latestCrop?.fetchedAt, latestWeather?.recordedAt].filter(Boolean) as Date[];
-    const mostRecentAt = times.length ? new Date(Math.max(...times.map((t) => t.getTime()))) : null;
+    if (shouldUseHomepageStatsFallback(activeDistricts, totalDataPoints)) {
+      const fallback = getHomepageStatsFallback();
+      await cacheSet(CACHE_KEY, fallback, 300);
+      return NextResponse.json(fallback, {
+        headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" },
+      });
+    }
 
     const result = {
       activeDistricts,
       modulesPerDistrict: 29,
       totalDataPoints,
-      mostRecentAt: mostRecentAt?.toISOString() ?? null,
+      mostRecentAt,
       plannedDistricts: 780,
       fromCache: false,
     };
@@ -67,6 +83,9 @@ export async function GET() {
     console.error("[homepage-stats]", err);
     try {
       const fallbackCount = await prisma.district.count({ where: { active: true } });
+      if (fallbackCount === 0) {
+        return NextResponse.json(getHomepageStatsFallback());
+      }
       return NextResponse.json({
         activeDistricts: fallbackCount,
         modulesPerDistrict: 29,
@@ -75,17 +94,10 @@ export async function GET() {
         plannedDistricts: 780,
         fromCache: false,
         error: true,
+        fallback: "database-partial",
       });
     } catch {
-      return NextResponse.json({
-        activeDistricts: 0,
-        modulesPerDistrict: 29,
-        totalDataPoints: 0,
-        mostRecentAt: null,
-        plannedDistricts: 780,
-        fromCache: false,
-        error: true,
-      });
+      return NextResponse.json(getHomepageStatsFallback());
     }
   }
 }

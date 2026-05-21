@@ -30,7 +30,7 @@ export const config = {
   // Match all pathnames except for internal Next.js/API routes
   matcher: [
     "/",
-    "/(en|kn)/:path*",
+    "/(en|kn|hi|te|ta|ml|mr|bn|gu|pa|or|as|ur|sa|ne|sd|ks|doi|kok|mni|brx|sat|mai)/:path*",
     "/((?!_next|_vercel|api|.*\\..*).*)",
   ],
 };

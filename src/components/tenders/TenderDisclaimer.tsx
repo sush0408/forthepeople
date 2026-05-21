@@ -41,7 +41,10 @@ export default function TenderDisclaimer({
           lineHeight: 1.6,
         }}
       >
-        <strong style={{ color: "#0F172A" }}>Data source:</strong> tenders published on KPPP, CPPP, IREPS, defproc.gov.in, BEL eProc and HAL TenderWizard — aggregated under RTI §4 proactive-disclosure rules and the GODL-India licence.
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#1E3A8A", marginRight: 8 }}>
+          Tender data
+        </span>
+        <strong style={{ color: "#0F172A" }}>Data source:</strong> tenders published on KPPP, CPPP, IREPS, defproc.gov.in, BEL eProc and HAL TenderWizard, aggregated under RTI §4 proactive-disclosure rules and the GODL-India licence.
         {disclaimerHref ? (
           <>
             {" "}
@@ -73,7 +76,7 @@ export default function TenderDisclaimer({
       <ol style={{ paddingLeft: 18, margin: 0 }}>
         <li style={{ marginBottom: 8 }}><strong>Source data only.</strong> Every tender shown here is aggregated from a public Government of India or State of Karnataka procurement portal. No data is generated or inferred.</li>
         <li style={{ marginBottom: 8 }}><strong>Not an official government service.</strong> ForThePeople.in is an independent civic platform. For binding status, always verify on the source portal.</li>
-        <li style={{ marginBottom: 8 }}><strong>Factual red-flag labels.</strong> Labels like "single bidder" or "short window" are mathematical observations computed from the published data, compared against rules such as GFR 2017, KTPPA 1999, or CVC guidelines. They are not allegations. Legitimate reasons may exist in any individual case.</li>
+        <li style={{ marginBottom: 8 }}><strong>Factual red-flag labels.</strong> Labels like &ldquo;single bidder&rdquo; or &ldquo;short window&rdquo; are mathematical observations computed from the published data, compared against rules such as GFR 2017, KTPPA 1999, or CVC guidelines. They are not allegations. Legitimate reasons may exist in any individual case.</li>
         <li style={{ marginBottom: 8 }}><strong>Eligibility wizard is informational.</strong> Matching runs in your browser against tender-published criteria. Nothing on this page constitutes legal advice under the Advocates Act §33. Consult an enrolled advocate for interpretation.</li>
         <li style={{ marginBottom: 8 }}><strong>Personal data protected.</strong> Aadhaar, phone numbers, personal email addresses and individual PAN are automatically redacted from ingested documents (DPDP Act 2023 readiness).</li>
         <li style={{ marginBottom: 8 }}><strong>Takedown & grievance.</strong> 7-working-day SLA. Email <a href="mailto:support@forthepeople.in?subject=Takedown%20Request%3A%20Tenders%20module" style={{ color: "#2563EB", textDecoration: "underline" }}>support@forthepeople.in</a> with subject line &ldquo;Takedown Request&rdquo;. Winning bidders may request 7-year anonymisation for individual records.</li>

@@ -11,7 +11,6 @@
 import ModuleErrorBoundary from "@/components/common/ModuleErrorBoundary";
 import { use, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ComponentType } from "react";
 import {
   HardHat, AlertTriangle, ExternalLink, Info, Sparkles, X,
   Route, Train, TramFront, Landmark, Droplets, Waves, Building2, Zap, Heart,
@@ -32,8 +31,6 @@ import ModuleNews from "@/components/district/ModuleNews";
 // ═══════════════════════════════════════════════════════════
 // Status config — case-insensitive via normalizeStatus
 // ═══════════════════════════════════════════════════════════
-
-type LucideCmp = ComponentType<{ size?: number | string; style?: React.CSSProperties; className?: string }>;
 
 function normalizeStatus(s: string | null | undefined): string {
   if (!s) return "PROPOSED";
@@ -101,31 +98,55 @@ function normalizeCategory(raw: string | null | undefined): string {
   return raw.replace(/\s+/g, " ").trim().replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
 }
 
-const CATEGORY_ICON: Record<string, LucideCmp> = {
-  Roads:             Route,
-  Metro:             Train,
-  Rail:              TramFront,
-  Bridge:            Landmark,
-  Flyover:           Landmark,
-  Water:             Droplets,
-  Sewage:            Waves,
-  Housing:           Building2,
-  Power:             Zap,
-  Hospital:          Heart,
-  Education:         GraduationCap,
-  "Sports & Stadium": Trophy,
-  Airport:           Plane,
-  Port:              Anchor,
-  "Parks & Lakes":   TreePine,
-  Traffic:           TrafficCone,
-  Environment:       Leaf,
-  Industry:          Factory,
-  Telecom:           Factory,
-  Other:             HardHat,
-};
-
-function categoryIcon(raw: string | null | undefined): LucideCmp {
-  return CATEGORY_ICON[normalizeCategory(raw)] ?? HardHat;
+function CategoryGlyph({
+  category,
+  size,
+  style,
+}: {
+  category: string | null | undefined;
+  size?: number;
+  style?: React.CSSProperties;
+}) {
+  switch (normalizeCategory(category)) {
+    case "Roads":
+      return <Route size={size} style={style} />;
+    case "Metro":
+      return <Train size={size} style={style} />;
+    case "Rail":
+      return <TramFront size={size} style={style} />;
+    case "Bridge":
+    case "Flyover":
+      return <Landmark size={size} style={style} />;
+    case "Water":
+      return <Droplets size={size} style={style} />;
+    case "Sewage":
+      return <Waves size={size} style={style} />;
+    case "Housing":
+      return <Building2 size={size} style={style} />;
+    case "Power":
+      return <Zap size={size} style={style} />;
+    case "Hospital":
+      return <Heart size={size} style={style} />;
+    case "Education":
+      return <GraduationCap size={size} style={style} />;
+    case "Sports & Stadium":
+      return <Trophy size={size} style={style} />;
+    case "Airport":
+      return <Plane size={size} style={style} />;
+    case "Port":
+      return <Anchor size={size} style={style} />;
+    case "Parks & Lakes":
+      return <TreePine size={size} style={style} />;
+    case "Traffic":
+      return <TrafficCone size={size} style={style} />;
+    case "Environment":
+      return <Leaf size={size} style={style} />;
+    case "Industry":
+    case "Telecom":
+      return <Factory size={size} style={style} />;
+    default:
+      return <HardHat size={size} style={style} />;
+  }
 }
 
 const UPDATE_TYPE_LABEL: Record<string, string> = {
@@ -175,10 +196,6 @@ function relativeTime(iso: string | null | undefined): string {
 
 const AWAIT_STYLE: React.CSSProperties = { color: "#9CA3AF", fontStyle: "italic" };
 
-function Awaiting() {
-  return <span style={AWAIT_STYLE}>Awaiting data</span>;
-}
-
 // Normalized status predicates
 function isCancelled(p: InfraProject): boolean { return normalizeStatus(p.status) === "CANCELLED"; }
 function isCompleted(p: InfraProject): boolean { return normalizeStatus(p.status) === "COMPLETED"; }
@@ -197,7 +214,7 @@ function DisclaimerBanner() {
     <div
       role="note"
       style={{
-        background: "#FFFBEB", border: "1px solid #FDE68A", borderLeft: "4px solid #D97706",
+        background: "#FFFBEB", border: "1px solid #FDE68A",
         borderRadius: 12, padding: "12px 16px", marginBottom: 20,
         display: "flex", gap: 10, alignItems: "flex-start",
       }}
@@ -229,10 +246,10 @@ function TimelineEntry({ u }: { u: InfraUpdate }) {
     : "#2563EB";
 
   return (
-    <div style={{ position: "relative", padding: "12px 0 12px 22px", borderLeft: "2px solid #E8E8E4", marginLeft: 6 }}>
+    <div style={{ position: "relative", padding: "12px 0 12px 22px", marginLeft: 6 }}>
       <span
         style={{
-          position: "absolute", left: -7, top: 16, width: 12, height: 12, borderRadius: "50%",
+          position: "absolute", left: 0, top: 16, width: 12, height: 12, borderRadius: "50%",
           background: accent, border: "2px solid #FFF", boxShadow: `0 0 0 2px ${accent}40`,
         }}
       />
@@ -334,7 +351,7 @@ function PrecomputedAnalysis({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div style={{ padding: "14px 16px", background: "#FAFAFE", border: "1px solid #E0E7FF", borderLeft: "4px solid #7C3AED", borderRadius: 12 }}>
+    <div style={{ padding: "14px 16px", background: "#FAFAFE", border: "1px solid #E0E7FF", borderRadius: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
         <Sparkles size={13} style={{ color: "#7C3AED" }} />
         <span style={{ fontSize: 12, fontWeight: 700, color: "#4C1D95", letterSpacing: "0.04em", textTransform: "uppercase" }}>
@@ -466,7 +483,6 @@ function PeopleRow({ p }: { p: InfraProject }) {
 
 function TimelineModal({ p, onClose }: { p: InfraProject; onClose: () => void }) {
   const updates = p.updates ?? [];
-  const Icon = categoryIcon(p.category);
 
   // ESC closes the modal; lock body scroll while open
   useEffect(() => {
@@ -515,7 +531,7 @@ function TimelineModal({ p, onClose }: { p: InfraProject; onClose: () => void })
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
-            <Icon size={18} style={{ color: "#2563EB", flexShrink: 0 }} />
+            <CategoryGlyph category={p.category} size={18} style={{ color: "#2563EB", flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A1A", lineHeight: 1.3 }}>{p.name}</div>
               <div style={{ fontSize: 11, color: "#6B7280" }}>
@@ -583,7 +599,6 @@ function TimelineModal({ p, onClose }: { p: InfraProject; onClose: () => void })
 function ProjectCard({ p }: { p: InfraProject }) {
   const [open, setOpen] = useState(false);
   const ss = statusStyle(p.status);
-  const Icon = categoryIcon(p.category);
   const normalCategory = normalizeCategory(p.category);
   const updates = p.updates ?? [];
   const latest = updates[0];
@@ -605,7 +620,7 @@ function ProjectCard({ p }: { p: InfraProject }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 6 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: "#1A1A1A", lineHeight: 1.3, marginBottom: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <Icon size={17} style={{ color: "#2563EB", flexShrink: 0 }} />
+            <CategoryGlyph category={p.category} size={17} style={{ color: "#2563EB", flexShrink: 0 }} />
             <span>{p.name}</span>
           </div>
           {p.description && (
@@ -905,7 +920,13 @@ function LegalFooter() {
   );
 }
 
-function DataFreshnessIndicator({ projects }: { projects: InfraProject[] }) {
+function DataFreshnessIndicator({
+  projects,
+  referenceNowMs,
+}: {
+  projects: InfraProject[];
+  referenceNowMs: number;
+}) {
   if (projects.length === 0) return null;
   const newsTimestamps = projects
     .map((p) => p.lastNewsAt ? new Date(p.lastNewsAt).getTime() : null)
@@ -927,7 +948,7 @@ function DataFreshnessIndicator({ projects }: { projects: InfraProject[] }) {
     );
   }
   const newestMs = Math.max(...newsTimestamps);
-  const ageMs = Date.now() - newestMs;
+  const ageMs = referenceNowMs - newestMs;
   const ageDays = Math.floor(ageMs / 86_400_000);
   const ageHours = Math.floor(ageMs / 3_600_000);
   const isStale = ageDays > 7;
@@ -969,6 +990,7 @@ function InfrastructurePageInner({ params }: { params: Promise<{ locale: string;
   const base = `/${locale}/${state}/${district}`;
   const { data, isLoading, error } = useInfrastructure(district, state);
   const projects = useMemo<InfraProject[]>(() => data?.data ?? [], [data]);
+  const [referenceNowMs] = useState(() => Date.now());
 
   const [catFilter, setCatFilter] = useState<CategoryFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -985,8 +1007,8 @@ function InfrastructurePageInner({ params }: { params: Promise<{ locale: string;
     return { categoryOrder: ordered, categoryCounts: counts };
   }, [projects]);
 
-  const activeList = projects.filter((p) => !isCancelled(p));
-  const cancelledList = projects.filter((p) => isCancelled(p));
+  const activeList = useMemo(() => projects.filter((p) => !isCancelled(p)), [projects]);
+  const cancelledList = useMemo(() => projects.filter((p) => isCancelled(p)), [projects]);
 
   const totalBudget = activeList.reduce((s, p) => s + (p.revisedBudget ?? p.originalBudget ?? p.budget ?? 0), 0);
   const totalSpent = activeList.reduce((s, p) => s + (p.fundsReleased ?? 0), 0);
@@ -1046,7 +1068,7 @@ function InfrastructurePageInner({ params }: { params: Promise<{ locale: string;
 
       {!isLoading && projects.length > 0 && (
         <>
-          <DataFreshnessIndicator projects={projects} />
+          <DataFreshnessIndicator projects={projects} referenceNowMs={referenceNowMs} />
 
           {/* Stats row */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10, marginBottom: 16 }}>

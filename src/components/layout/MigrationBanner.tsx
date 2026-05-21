@@ -72,27 +72,23 @@ function useResolvedAnnouncement(): Announcement | null {
 
 export default function MigrationBanner() {
   const ann = useResolvedAnnouncement();
-  const [acknowledged, setAcknowledged] = useState(false);
-
-  useEffect(() => {
-    if (!ann) return;
-    if (localStorage.getItem(ann.storageKey)) setAcknowledged(true);
-  }, [ann]);
+  const [dismissed, setDismissed] = useState(false);
+  const acknowledged = Boolean(ann && typeof window !== "undefined" && localStorage.getItem(ann.storageKey));
 
   // Body scroll lock only while a modal is actively blocking
   useEffect(() => {
-    if (!ann || ann.displayMode !== "modal" || acknowledged) return;
+    if (!ann || ann.displayMode !== "modal" || acknowledged || dismissed) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [ann, acknowledged]);
+  }, [ann, acknowledged, dismissed]);
 
-  if (!ann || acknowledged) return null;
+  if (!ann || acknowledged || dismissed) return null;
 
   function acknowledge() {
     if (!ann) return;
     localStorage.setItem(ann.storageKey, new Date().toISOString());
-    setAcknowledged(true);
+    setDismissed(true);
   }
 
   const style = VARIANT_STYLE[ann.variant] ?? VARIANT_STYLE.critical;

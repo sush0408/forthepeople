@@ -4,8 +4,8 @@
  */
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import LegalPageHeader from "@/components/common/LegalPageHeader";
+import LocaleLink from "@/components/common/LocaleLink";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — ForThePeople.in",
@@ -402,13 +402,13 @@ export default function PrivacyPage() {
           }}
         >
           See also:{" "}
-          <Link href="/disclaimer" style={{ color: "#2563EB", textDecoration: "none" }}>
+          <LocaleLink href="/disclaimer" style={{ color: "#2563EB", textDecoration: "none" }}>
             Disclaimer
-          </Link>
+          </LocaleLink>
           {" · "}
-          <Link href="/about" style={{ color: "#2563EB", textDecoration: "none" }}>
+          <LocaleLink href="/about" style={{ color: "#2563EB", textDecoration: "none" }}>
             About
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     </div>

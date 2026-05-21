@@ -191,7 +191,7 @@ export default function SupportersTable({
             Flat List
           </button>
           <button onClick={() => setViewMode("grouped")}
-            style={{ padding: "7px 14px", fontSize: 12, fontWeight: 600, border: "none", borderLeft: "1px solid #E8E8E4", cursor: "pointer", background: viewMode === "grouped" ? "#2563EB" : "#FAFAF8", color: viewMode === "grouped" ? "#fff" : "#6B6B6B" }}>
+            style={{ padding: "7px 14px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", background: viewMode === "grouped" ? "#2563EB" : "#FAFAF8", color: viewMode === "grouped" ? "#fff" : "#6B6B6B" }}>
             Grouped
           </button>
         </div>

@@ -12,43 +12,80 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/db";
-import { cacheGet, cacheSet, cacheKey, getModuleTTL } from "@/lib/cache";
+import { cacheGet, cacheSet, getModuleTTL } from "@/lib/cache";
+import { getWaterModuleFallback, hasStaticWaterFallbackDistrict } from "@/lib/data-fallbacks";
+import {
+  buildDistrictDataCacheKey,
+  getDistrictDataErrorStatus,
+  normalizeDistrictDataRouteParam,
+} from "@/lib/district-data";
 
 // ── Params type (Next.js 15+) ───────────────────────────
 type RouteContext = { params: Promise<{ module: string }> };
 
+function getMetaError(meta: unknown): string | undefined {
+  if (!meta || typeof meta !== "object" || !("error" in meta)) return undefined;
+  const error = meta.error;
+  return typeof error === "string" ? error : undefined;
+}
+
 export async function GET(req: NextRequest, ctx: RouteContext) {
-  const { module } = await ctx.params;
+  const { module: rawModule } = await ctx.params;
   const sp = req.nextUrl.searchParams;
-  const districtSlug = sp.get("district") ?? "";
-  const stateSlug = sp.get("state") ?? "";
-  const talukSlug = sp.get("taluk") ?? "";
+  const normalizedModule = normalizeDistrictDataRouteParam(rawModule);
+  const districtSlug = normalizeDistrictDataRouteParam(sp.get("district"));
+  const stateSlug = normalizeDistrictDataRouteParam(sp.get("state"));
+  const talukSlug = normalizeDistrictDataRouteParam(sp.get("taluk"));
 
   if (!districtSlug) {
     return NextResponse.json({ error: "district param required" }, { status: 400 });
   }
 
   // ── Cache check ──────────────────────────────────────
-  const key = cacheKey(districtSlug, module + (talukSlug ? `:${talukSlug}` : ""));
+  const key = buildDistrictDataCacheKey(stateSlug, districtSlug, normalizedModule, talukSlug);
   const cached = await cacheGet<{ data: unknown; meta: Record<string, unknown> }>(key);
   if (cached) {
-    const ttl = getModuleTTL(module);
-    const resp = NextResponse.json({ ...cached, meta: { ...cached.meta, fromCache: true } });
+    const ttl = getModuleTTL(normalizedModule);
+    const meta = { ...cached.meta, fromCache: true };
+    const resp = NextResponse.json(
+      { ...cached, meta },
+      { status: getDistrictDataErrorStatus(getMetaError(meta)) },
+    );
     resp.headers.set("Cache-Control", `public, s-maxage=${ttl}, stale-while-revalidate=${ttl * 2}`);
     return resp;
   }
 
   // ── Fetch ────────────────────────────────────────────
   try {
-    const result = await fetchModule(module, districtSlug, stateSlug, talukSlug);
-    await cacheSet(key, result, getModuleTTL(module));
-    const ttl = getModuleTTL(module);
-    const resp = NextResponse.json(result);
+    const result = await fetchModule(normalizedModule, districtSlug, stateSlug, talukSlug);
+    const metaError = getMetaError(result.meta);
+    if (
+      normalizedModule === "water"
+      && metaError === "District not found"
+      && stateSlug
+      && hasStaticWaterFallbackDistrict(stateSlug, districtSlug)
+    ) {
+      const fallback = getWaterModuleFallback(stateSlug, districtSlug);
+      await cacheSet(key, fallback, getModuleTTL(normalizedModule));
+      const ttl = getModuleTTL(normalizedModule);
+      const resp = NextResponse.json(fallback);
+      resp.headers.set("Cache-Control", `public, s-maxage=${ttl}, stale-while-revalidate=${ttl * 2}`);
+      return resp;
+    }
+
+    await cacheSet(key, result, getModuleTTL(normalizedModule));
+    const ttl = getModuleTTL(normalizedModule);
+    const resp = NextResponse.json(result, {
+      status: getDistrictDataErrorStatus(metaError),
+    });
     resp.headers.set("Cache-Control", `public, s-maxage=${ttl}, stale-while-revalidate=${ttl * 2}`);
     return resp;
   } catch (err) {
     Sentry.captureException(err);
-    console.error(`[API] ${module} error:`, err);
+    console.error(`[API] ${normalizedModule} error:`, err);
+    if (normalizedModule === "water") {
+      return NextResponse.json(getWaterModuleFallback(stateSlug, districtSlug));
+    }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -57,8 +94,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 async function fetchModule(
   module: string,
   districtSlug: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _stateSlug: string,
+  stateSlug: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _talukSlug: string
 ) {
@@ -67,7 +103,12 @@ async function fetchModule(
 
   // Resolve district id once
   const district = await prisma.district.findFirst({
-    where: { slug: districtSlug },
+    where: stateSlug
+      ? {
+          slug: districtSlug,
+          state: { slug: stateSlug },
+        }
+      : { slug: districtSlug },
     select: { id: true, name: true, nameLocal: true },
   });
 

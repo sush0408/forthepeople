@@ -80,7 +80,6 @@ export default function AIInsightCard({ module, district }: AIInsightCardProps) 
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
 
     fetch(`/api/data/insight?module=${module}&district=${district}`)
       .then((r) => r.json())
@@ -132,7 +131,6 @@ export default function AIInsightCard({ module, district }: AIInsightCardProps) 
       style={{
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
-        borderLeft: `4px solid ${cfg.color}`,
         borderRadius: 10,
         padding: "14px 16px",
         marginBottom: 20,
@@ -219,7 +217,7 @@ export default function AIInsightCard({ module, district }: AIInsightCardProps) 
                 borderRadius: 8,
                 fontSize: 12,
                 color: "#374151",
-                borderLeft: `3px solid ${cfg.color}`,
+                border: `1px solid ${cfg.border}`,
               }}
             >
               {insight.recommendation}

@@ -7,7 +7,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/i18n/I18nProvider";
+import { formatRelativeFreshness } from "@/lib/data-freshness";
+import { getHomepageStatsFallback } from "@/lib/data-fallbacks";
 
 interface Stats {
   activeDistricts: number;
@@ -15,38 +18,45 @@ interface Stats {
   totalDataPoints: number;
   mostRecentAt: string | null;
   plannedDistricts: number;
+  error?: boolean;
+  fallback?: string;
 }
 
 function useCountUp(target: number, duration = 1500) {
   const [count, setCount] = useState(0);
+  const countRef = useRef(0);
+
   useEffect(() => {
-    if (!target) return;
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) {
-        setCount(target);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(start));
+    countRef.current = count;
+  }, [count]);
+
+  useEffect(() => {
+    const start = countRef.current;
+    const delta = target - start;
+    if (delta === 0) return;
+
+    let frameId = 0;
+    let startedAt: number | null = null;
+    const tick = (timestamp: number) => {
+      if (startedAt === null) {
+        startedAt = timestamp;
       }
-    }, 16);
-    return () => clearInterval(timer);
+
+      const progress = Math.min(1, (timestamp - startedAt) / duration);
+      const nextCount = Math.round(start + delta * progress);
+      setCount(nextCount);
+
+      if (progress < 1) {
+        frameId = window.requestAnimationFrame(tick);
+      } else {
+        setCount(target);
+      }
+    };
+
+    frameId = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frameId);
   }, [target, duration]);
   return count;
-}
-
-function timeAgo(isoStr: string | null): string {
-  if (!isoStr) return "–";
-  const diff = (Date.now() - new Date(isoStr).getTime()) / 60000; // minutes
-  if (diff < 1) return "< 1 min ago";
-  if (diff < 60) return `${Math.round(diff)} min ago`;
-  const hours = Math.round(diff / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(diff / 1440);
-  if (days <= 7) return `${days} day${days === 1 ? "" : "s"} ago`;
-  return new Date(isoStr).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
 function StatCard({ value, label, mono = true }: { value: string; label: string; mono?: boolean }) {
@@ -80,9 +90,31 @@ function StatCard({ value, label, mono = true }: { value: string; label: string;
 }
 
 export default function HomepageStats() {
+  const { t } = useI18n();
   const { data } = useQuery<Stats>({
     queryKey: ["homepage-stats"],
-    queryFn: () => fetch("/api/data/homepage-stats").then((r) => r.json()),
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/data/homepage-stats");
+        const payload = await response.json().catch(() => null);
+
+        if (!response.ok || !payload || typeof payload !== "object") {
+          return {
+            ...getHomepageStatsFallback(),
+            error: true,
+            fallback: "request-failed",
+          };
+        }
+
+        return payload as Stats;
+      } catch {
+        return {
+          ...getHomepageStatsFallback(),
+          error: true,
+          fallback: "request-failed",
+        };
+      }
+    },
     staleTime: 300_000,
   });
 
@@ -93,23 +125,33 @@ export default function HomepageStats() {
   const modules = useCountUp(data?.modulesPerDistrict ?? 29);
   const dataPoints = useCountUp(data?.totalDataPoints ?? 0);
   const ready = !!data;
+  const statusCopy = data?.fallback
+    ? t("home.stats.fallbackStatus", "Showing district coverage while local homepage stats reconnect.")
+    : t("home.stats.liveStatus", "Data refreshes every 5-30 minutes from official government portals.");
 
   return (
     <div>
       <div className="grid grid-cols-2 md:flex" style={{ gap: 8, padding: "12px 16px 0" }}>
-        <StatCard value={ready ? `${districts}` : "—"} label="Districts LIVE" />
-        <StatCard value={ready ? `${modules}` : "—"} label="Dashboards / District" />
+        <StatCard value={ready ? `${districts}` : "—"} label={t("home.stats.districtsLive", "Districts live")} />
+        <StatCard value={ready ? `${modules}` : "—"} label={t("home.stats.dashboardsPerDistrict", "Dashboards / district")} />
         <StatCard
           value={ready ? dataPoints.toLocaleString("en-IN") : "—"}
-          label="Data Points Tracked"
+          label={t("home.stats.dataPointsTracked", "Data points tracked")}
         />
-        <StatCard value={`${(data?.plannedDistricts ?? 780).toLocaleString("en-IN")}+`} label="Districts Coming" />
+        <StatCard
+          value={`${(data?.plannedDistricts ?? 780).toLocaleString("en-IN")}+`}
+          label={t("home.stats.districtsComing", "Districts coming")}
+        />
         <div className="hidden md:contents">
-          <StatCard value={data?.mostRecentAt ? timeAgo(data.mostRecentAt) : "Live"} label="Last Updated" mono={false} />
+          <StatCard
+            value={ready ? formatRelativeFreshness(data?.mostRecentAt) : "—"}
+            label={t("home.stats.lastUpdated", "Last updated")}
+            mono={false}
+          />
         </div>
       </div>
       <p style={{ fontSize: 11, color: "#9B9B9B", textAlign: "center", marginTop: 8 }}>
-        Data refreshes every 5–30 minutes from official government portals
+        {statusCopy}
       </p>
     </div>
   );

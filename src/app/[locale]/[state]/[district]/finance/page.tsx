@@ -56,7 +56,7 @@ function FinancePageInner({ params }: { params: Promise<{ locale: string; state:
         const sc = getStateConfig(state);
         const stateFinSource = sc ? `${sc.name} Finance Department, PFMS, eGramSwaraj` : "State Finance Department, PFMS, eGramSwaraj";
         return (
-          <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", borderRadius: 8, borderLeft: "3px solid #7C3AED" }}>
+          <p style={{ fontSize: 13, color: "#6B6B6B", lineHeight: 1.7, marginBottom: 16, padding: "12px 16px", background: "#FAFAF8", border: "1px solid #E8E8E4", borderRadius: 8 }}>
             This page shows the annual budget allocation and expenditure data for this district&apos;s government departments, sourced from {stateFinSource}. Figures are in Indian Rupees in Crores (1 Crore = ₹10 million). Unspent budget that lapses at fiscal year end is highlighted as &ldquo;lapsed funds.&rdquo;
           </p>
         );
@@ -84,7 +84,7 @@ function FinancePageInner({ params }: { params: Promise<{ locale: string; state:
           </div>
 
           {totalSpent === 0 && totalAllocated > 0 && (
-            <div style={{ fontSize: 12, color: "#6B6B6B", background: "#F9FAFB", border: "1px solid #E8E8E4", borderRadius: 8, padding: "10px 14px", marginBottom: 20, borderLeft: "3px solid #2563EB" }}>
+            <div style={{ fontSize: 12, color: "#6B6B6B", background: "#F9FAFB", border: "1px solid #E8E8E4", borderRadius: 8, padding: "10px 14px", marginBottom: 20 }}>
               Allocation data is available. Expenditure tracking from PFMS/state treasury will be updated as data becomes available.
             </div>
           )}

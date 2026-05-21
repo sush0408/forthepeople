@@ -9,8 +9,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { Heart, MoreHorizontal, Vote, X } from "lucide-react";
 import { SIDEBAR_MODULES, getTieredModules, MOBILE_TAB_MODULES } from "@/lib/constants/sidebar-modules";
+import { withLocalePath } from "@/lib/locale-routing";
 
 // 4 fixed bottom tabs (5th slot = "More" button). Defined once in
 // sidebar-modules.ts; citizens use these most frequently.
@@ -91,6 +92,7 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
         {/* More button */}
         <button
           onClick={() => setDrawerOpen(true)}
+          aria-label="Open all modules"
           style={{
             flex: 1,
             display: "flex",
@@ -106,7 +108,7 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
             padding: 0,
           }}
         >
-          <span style={{ fontSize: 18, lineHeight: 1 }}>⋯</span>
+          <MoreHorizontal size={20} aria-hidden="true" />
           <span style={{ fontSize: 10, fontWeight: moreIsActive ? 600 : 400 }}>More</span>
         </button>
       </nav>
@@ -216,7 +218,6 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
                             minHeight: 52,
                             textDecoration: "none",
                             background: isActive ? "#EFF6FF" : "transparent",
-                            borderLeft: isActive ? "3px solid #2563EB" : "3px solid transparent",
                           }}
                         >
                           {/* Icon circle */}
@@ -236,7 +237,7 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
                               fontSize: 14, fontWeight: isActive ? 600 : 500,
                               color: isActive ? "#2563EB" : "#1A1A1A",
                             }}>
-                              {mod.emoji} {mod.label}
+                              {mod.label}
                             </div>
                             <div style={{ fontSize: 11, color: "#9B9B9B", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {mod.description}
@@ -256,7 +257,7 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
               {/* Quick links — Vote on Features + Support */}
               <div style={{ borderTop: "1px solid #E8E8E4", margin: "8px 0 0", padding: "4px 0" }}>
                 <Link
-                  href="/en/features"
+                  href={withLocalePath(locale, "/features")}
                   onClick={() => setDrawerOpen(false)}
                   style={{
                     display: "flex", alignItems: "center", gap: 14,
@@ -268,7 +269,7 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
                     background: "#F5F3FF",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <span style={{ fontSize: 18 }}>🗳️</span>
+                    <Vote size={18} strokeWidth={1.9} style={{ color: "#7C3AED" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: "#7C3AED" }}>Vote on Features</div>
@@ -276,7 +277,7 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
                   </div>
                 </Link>
                 <Link
-                  href="/support"
+                  href={withLocalePath(locale, "/support")}
                   onClick={() => setDrawerOpen(false)}
                   style={{
                     display: "flex", alignItems: "center", gap: 14,
@@ -288,7 +289,7 @@ export default function MobileTabNav({ locale, stateSlug, districtSlug }: Mobile
                     background: "#FFF1F2",
                     display: "flex", alignItems: "center", justifyContent: "center",
                   }}>
-                    <span style={{ fontSize: 18 }}>❤️</span>
+                    <Heart size={18} strokeWidth={1.9} style={{ color: "#DC2626" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 500, color: "#DC2626" }}>Support This Project</div>

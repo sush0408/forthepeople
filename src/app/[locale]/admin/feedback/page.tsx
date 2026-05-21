@@ -287,7 +287,7 @@ export default function FeedbackAdminPage() {
             return (
               <div key={item.id} style={{
                 ...card,
-                borderLeft: `3px solid ${item.status === "new" ? "#2563EB" : item.status === "archived" ? "#D1D5DB" : "#16A34A"}`,
+                borderColor: item.status === "new" ? "#BFDBFE" : item.status === "archived" ? "#D1D5DB" : "#BBF7D0",
               }}>
                 {/* Admin warning banner */}
                 {item.aiAdminWarning && (

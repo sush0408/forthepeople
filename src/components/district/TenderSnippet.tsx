@@ -29,6 +29,8 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Gavel, Lock, Clock } from "lucide-react";
+import { withLocalePath } from "@/lib/locale-routing";
+import { buildTenderQueryKey, buildTenderQuerySearch } from "@/lib/tenders/ui";
 
 type Status = "LIVE" | "STALE" | "LOCKED" | "NO_DATA";
 
@@ -64,14 +66,13 @@ const STATUS_BADGE: Record<Status, { label: string; bg: string; color: string }>
 };
 
 export default function TenderSnippet({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  locale, state, district, base,
+  locale, district, state, base,
 }: {
-  locale: string; state: string; district: string; base: string;
+  locale: string; district: string; state: string; base: string;
 }) {
   const { data } = useQuery<StatsResponse>({
-    queryKey: ["district", district, "tenders", "snippet"],
-    queryFn: () => fetch(`/api/tenders/${district}/stats`).then((r) => r.json()),
+    queryKey: buildTenderQueryKey("snippet", state, district),
+    queryFn: () => fetch(`/api/tenders/${district}/stats?${buildTenderQuerySearch(state)}`).then((r) => r.json()),
     staleTime: 5 * 60_000,
   });
 
@@ -134,7 +135,7 @@ export default function TenderSnippet({
             <div style={{ flex: 1, fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
               Coming soon for <strong>{data.districtName}</strong>.
               <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
-                <Link href="/support" style={{ color: "#2563EB", textDecoration: "none", fontWeight: 500 }}>
+                <Link href={withLocalePath(locale, "/support")} style={{ color: "#2563EB", textDecoration: "none", fontWeight: 500 }}>
                   Support us to prioritise your district →
                 </Link>
               </div>

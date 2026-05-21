@@ -68,7 +68,7 @@ export default function HowTenderWorks({ sections }: { sections: Section[] }) {
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
         <div style={{ display: "inline-flex", border: "1px solid #D1D5DB", borderRadius: 8, overflow: "hidden" }}>
           <button onClick={() => setLang("en")} style={{ padding: "6px 14px", background: lang === "en" ? "#0F172A" : "#FFFFFF", color: lang === "en" ? "#FFFFFF" : "#374151", border: "none", cursor: "pointer", fontSize: 13 }}>English</button>
-          <button onClick={() => setLang("kn")} style={{ padding: "6px 14px", background: lang === "kn" ? "#0F172A" : "#FFFFFF", color: lang === "kn" ? "#FFFFFF" : "#374151", border: "none", borderLeft: "1px solid #D1D5DB", cursor: "pointer", fontSize: 13 }}>ಕನ್ನಡ (Kannada)</button>
+          <button onClick={() => setLang("kn")} style={{ padding: "6px 14px", background: lang === "kn" ? "#0F172A" : "#FFFFFF", color: lang === "kn" ? "#FFFFFF" : "#374151", border: "none", cursor: "pointer", fontSize: 13 }}>ಕನ್ನಡ (Kannada)</button>
         </div>
       </div>
 

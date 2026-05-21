@@ -6,8 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import TenderDisclaimer from "@/components/tenders/TenderDisclaimer";
 import TenderCard, { type TenderCardData } from "@/components/tenders/TenderCard";
-import EligibilityWizard from "@/components/tenders/EligibilityWizard";
 import ModuleErrorBoundary from "@/components/common/ModuleErrorBoundary";
+import { buildTenderQueryKey, buildTenderQuerySearch } from "@/lib/tenders/ui";
 
 type ListResp = { tenders: TenderCardData[]; total: number; districtName: string };
 
@@ -16,9 +16,9 @@ export default function ApplyGuidePage({ params }: { params: Promise<{ locale: s
   const [profile, setProfile] = useState({ isMse: false, isStartup: false, hasDsc: false });
 
   const { data } = useQuery<ListResp>({
-    queryKey: ["tenders-live", districtSlug],
+    queryKey: buildTenderQueryKey("apply-guide", stateSlug, districtSlug),
     queryFn: async () => {
-      const res = await fetch(`/api/tenders/${districtSlug}?status=LIVE&pageSize=100`);
+      const res = await fetch(`/api/tenders/${districtSlug}?status=LIVE&pageSize=100&${buildTenderQuerySearch(stateSlug)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     },
@@ -30,6 +30,9 @@ export default function ApplyGuidePage({ params }: { params: Promise<{ locale: s
     if (!profile.isMse && !profile.isStartup) return true;
     return t.mseReserved || t.startupExempt;
   });
+  const liveCount = data?.tenders.length ?? 0;
+  const reservedCount = (data?.tenders ?? []).filter((t) => t.mseReserved).length;
+  const startupCount = (data?.tenders ?? []).filter((t) => t.startupExempt).length;
 
   return (
     <ModuleErrorBoundary moduleName="ApplyGuide">
@@ -47,13 +50,18 @@ export default function ApplyGuidePage({ params }: { params: Promise<{ locale: s
           <p style={{ fontSize: 14, color: "#475569", marginBottom: 24 }}>
             Find tenders you qualify for in {data?.districtName ?? "your district"}. Fully client-side matching — your answers never leave your browser.
           </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12, marginBottom: 24 }}>
+            <MetricCard label="Live tenders" value={String(liveCount)} tone="#1D4ED8" bg="#EFF6FF" />
+            <MetricCard label="MSE-reserved" value={String(reservedCount)} tone="#047857" bg="#ECFDF5" />
+            <MetricCard label="Startup-friendly" value={String(startupCount)} tone="#B45309" bg="#FFF7ED" />
+          </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 24 }}>
             <div>
               <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 10, padding: 14, marginBottom: 16 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 10 }}>Quick filter — tell us about yourself</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-                  <label style={{ fontSize: 13, color: "#374151" }}><input type="checkbox" checked={profile.isMse} onChange={(e) => setProfile((p) => ({ ...p, isMse: e.target.checked }))} /> I'm Udyam-registered (MSE)</label>
+                  <label style={{ fontSize: 13, color: "#374151" }}><input type="checkbox" checked={profile.isMse} onChange={(e) => setProfile((p) => ({ ...p, isMse: e.target.checked }))} /> I&apos;m Udyam-registered (MSE)</label>
                   <label style={{ fontSize: 13, color: "#374151" }}><input type="checkbox" checked={profile.isStartup} onChange={(e) => setProfile((p) => ({ ...p, isStartup: e.target.checked }))} /> DPIIT Startup recognition</label>
                   <label style={{ fontSize: 13, color: "#374151" }}><input type="checkbox" checked={profile.hasDsc} onChange={(e) => setProfile((p) => ({ ...p, hasDsc: e.target.checked }))} /> I have a Class-3 DSC</label>
                 </div>
@@ -71,7 +79,7 @@ export default function ApplyGuidePage({ params }: { params: Promise<{ locale: s
             </div>
 
             {/* Sidebar */}
-            <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <aside style={{ display: "flex", flexDirection: "column", gap: 12, position: "sticky", top: 24, alignSelf: "start" }}>
               <SidebarCard title="Get your DSC">
                 <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "#374151", lineHeight: 1.7 }}>
                   <li>Class-3 required for KPPP/CPPP/IREPS</li>
@@ -118,6 +126,15 @@ function SidebarCard({ title, children }: { title: string; children: React.React
     <div style={{ background: "#FFFFFF", border: "1px solid #E8E8E4", borderRadius: 10, padding: 12 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 8 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+function MetricCard({ label, value, tone, bg }: { label: string; value: string; tone: string; bg: string }) {
+  return (
+    <div style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: "12px 14px", background: bg }}>
+      <div style={{ fontSize: 11, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: tone }}>{value}</div>
     </div>
   );
 }

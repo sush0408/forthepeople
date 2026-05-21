@@ -93,7 +93,7 @@ function AlertsPageInner({ params }: { params: Promise<{ locale: string; state: 
                   return (
                     <div key={a.id} style={{
                       background: sev.bg, border: `1px solid ${sev.border}`,
-                      borderLeft: `3px solid ${sev.text}`, borderRadius: 10, padding: "14px 16px",
+                      borderRadius: 10, padding: "14px 16px",
                     }}>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                         <div style={{ flex: 1 }}>

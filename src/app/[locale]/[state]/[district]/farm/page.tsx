@@ -51,7 +51,7 @@ export default function FarmPage({ params }: { params: Promise<{ locale: string;
                 {activeAdvisories.map((a) => {
                   const color = CAT_COLORS[a.category.toLowerCase()] ?? "#6B7280";
                   return (
-                    <div key={a.id} style={{ background: "#FFF", border: `1px solid ${color}30`, borderLeft: `3px solid ${color}`, borderRadius: 10, padding: "12px 14px" }}>
+                    <div key={a.id} style={{ background: "#FFF", border: `1px solid ${color}30`, borderRadius: 10, padding: "12px 14px" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 11, fontWeight: 600, color, background: `${color}15`, padding: "2px 7px", borderRadius: 10 }}>{a.category.toUpperCase()}</span>

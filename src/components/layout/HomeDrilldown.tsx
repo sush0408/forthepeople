@@ -9,8 +9,12 @@
 import { useState, Component, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Search, ArrowRight, MapPin } from "lucide-react";
+import { Search, ArrowRight, MapPin, Map, Heart } from "lucide-react";
 import { INDIA_STATES } from "@/lib/constants/districts";
+import { hasMeaningfulSearchQuery, matchesDistrictSearch } from "@/lib/chrome";
+import { buildStateDistrictKey } from "@/lib/district-selection";
+import { findHomepageDistrictPreview } from "@/lib/homepage-preview";
+import { withLocalePath } from "@/lib/locale-routing";
 
 // Districts activated within the last 30 days get a "NEW" badge
 const DISTRICT_ACTIVATED_AT: Record<string, string> = {
@@ -27,6 +31,7 @@ import HomepageStats from "@/components/home/HomepageStats";
 import LiveDataPreview from "@/components/home/LiveDataPreview";
 import HowItWorks from "@/components/home/HowItWorks";
 import DistrictRequestSection from "@/components/home/DistrictRequestSection";
+import { useI18n } from "@/i18n/I18nProvider";
 
 const DrillDownMap = dynamic(() => import("@/components/map/DrillDownMap"), {
   ssr: false,
@@ -57,7 +62,7 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { failed: bool
     if (this.state.failed) {
       return (
         <div style={{ width: "100%", height: "100%", minHeight: 300, background: "#F5F7FF", borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#9B9B9B", fontSize: 13 }}>
-          <span style={{ fontSize: 28 }}>🗺️</span>
+          <Map size={28} style={{ color: "#94A3B8" }} aria-hidden="true" />
           <span>Map unavailable</span>
           <span style={{ fontSize: 11 }}>Select your district from the list →</span>
         </div>
@@ -69,6 +74,7 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { failed: bool
 
 interface DistrictPreview {
   slug: string;
+  stateSlug?: string;
   name: string;
   nameLocal: string;
   tagline: string | null;
@@ -108,12 +114,12 @@ export default function HomeDrilldown({ locale }: HomeDrilldownProps) {
   const allDistricts = INDIA_STATES.flatMap((s) =>
     s.districts.map((d) => ({ state: s, district: d }))
   );
-  const filtered = searchQuery.length >= 2
+  const hasSearchResultsQuery = hasMeaningfulSearchQuery(searchQuery);
+  const filtered = hasSearchResultsQuery
     ? allDistricts
         .filter(({ district }) =>
           district.active &&
-          (district.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            district.nameLocal.includes(searchQuery))
+          matchesDistrictSearch(searchQuery, district.name, district.nameLocal)
         )
         .slice(0, 5)
     : [];
@@ -188,7 +194,7 @@ export default function HomeDrilldown({ locale }: HomeDrilldownProps) {
                   }}
                 >
                   {filtered.map(({ state, district }) => (
-                    <Link key={district.slug} href={`/${locale}/${state.slug}/${district.slug}`}
+                    <Link key={buildStateDistrictKey(state.slug, district.slug)} href={`/${locale}/${state.slug}/${district.slug}`}
                       style={{
                         display: "flex", alignItems: "center", padding: "11px 14px",
                         textDecoration: "none", color: "#1A1A1A",
@@ -209,6 +215,23 @@ export default function HomeDrilldown({ locale }: HomeDrilldownProps) {
                       <ArrowRight size={12} style={{ color: "#C0C0C0", marginLeft: 6 }} />
                     </Link>
                   ))}
+                </div>
+              )}
+              {hasSearchResultsQuery && filtered.length === 0 && (
+                <div
+                  style={{
+                    position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                    background: "#fff", border: "1px solid #E8E8E4", borderRadius: 10,
+                    boxShadow: "0 6px 20px rgba(0,0,0,0.08)", zIndex: 20, overflow: "hidden",
+                    padding: "12px 14px",
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A", marginBottom: 4 }}>
+                    No live district matched
+                  </div>
+                  <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.6 }}>
+                    Try a different spelling or use the state map to browse available districts.
+                  </div>
                 </div>
               )}
             </div>
@@ -234,12 +257,12 @@ export default function HomeDrilldown({ locale }: HomeDrilldownProps) {
         <HowItWorks />
 
         {/* District Request voting */}
-        <DistrictRequestSection />
+        <DistrictRequestSection locale={locale} />
 
         {/* Support button */}
         <div style={{ padding: "0 16px" }}>
           <Link
-            href="/support"
+            href={withLocalePath(locale, "/support")}
             style={{
               display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
               padding: "13px 0", background: "#FFF1F2", border: "1px solid #FECDD3",
@@ -247,12 +270,13 @@ export default function HomeDrilldown({ locale }: HomeDrilldownProps) {
               textDecoration: "none", minHeight: 44,
             }}
           >
-            ❤️ Support — ₹1.50/day serves one district
+            <Heart size={16} fill="currentColor" aria-hidden="true" />
+            Support — ₹1.50/day serves one district
           </Link>
         </div>
 
         {/* Disclaimer */}
-        <DisclaimerStrip />
+        <DisclaimerStrip locale={locale} />
       </div>
     </main>
   );
@@ -277,9 +301,9 @@ function ActiveDistrictsCard({
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {activeDistricts.map((d) => {
-          const preview = districtPreviews.find((p) => p.slug === d.slug);
+          const preview = findHomepageDistrictPreview(districtPreviews, d._stateSlug, d.slug);
           return (
-            <Link key={d.slug} href={`/${locale}/${d._stateSlug}/${d.slug}`}
+            <Link key={buildStateDistrictKey(d._stateSlug, d.slug)} href={`/${locale}/${d._stateSlug}/${d.slug}`}
               style={{
                 display: "flex", alignItems: "flex-start", justifyContent: "space-between",
                 padding: "12px 14px", background: "#F8FAFF", border: "1px solid #DBEAFE",
@@ -344,7 +368,9 @@ function ActiveDistrictsCard({
   );
 }
 
-function DisclaimerStrip() {
+function DisclaimerStrip({ locale }: { locale: string }) {
+  const { t } = useI18n();
+
   return (
     <div
       style={{
@@ -356,11 +382,13 @@ function DisclaimerStrip() {
       }}
     >
       <span>
-        <strong style={{ color: "#6B6B6B" }}>ForThePeople.in</strong> — Independent. NOT an official government website. Data under NDSAP.{" "}
-        <Link href="/disclaimer" style={{ color: "#2563EB", textDecoration: "none" }}>Disclaimer →</Link>
+        <strong style={{ color: "#6B6B6B" }}>ForThePeople.in</strong> — {t("footer.disclaimer", "Independent. NOT an official government website. Data under NDSAP.")}{" "}
+        <Link href={withLocalePath(locale, "/disclaimer")} style={{ color: "#2563EB", textDecoration: "none" }}>
+          {t("footer.disclaimerArrow", "Disclaimer →")}
+        </Link>
       </span>
       <span>
-        Built by{" "}
+        {t("footer.builtByPrefix", "Built by")}{" "}
         <a href="https://www.instagram.com/jayanth_m_b/" target="_blank" rel="noopener noreferrer" style={{ color: "#2563EB", textDecoration: "none" }}>
           Jayanth M B
         </a>

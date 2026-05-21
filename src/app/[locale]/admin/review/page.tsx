@@ -4,6 +4,7 @@
  * https://github.com/jayanthmb14/forthepeople
  */
 
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -113,7 +114,7 @@ export default async function AdminReviewPage({
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      <a href="/en/admin" style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", display: "inline-block", marginBottom: 12 }}>&larr; Back to Admin Dashboard</a>
+      <Link href={`/${locale}/admin`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", display: "inline-block", marginBottom: 12 }}>&larr; Back to Admin Dashboard</Link>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1A1A1A" }}>🧠 Admin Dashboard</h1>
       </div>
@@ -121,7 +122,7 @@ export default async function AdminReviewPage({
       {/* Tabs */}
       <div style={{ display: "flex", gap: 2, marginBottom: 24, borderBottom: "1px solid #E8E8E4" }}>
         {TABS.map((t) => (
-          <a key={t.key} href={`/${locale}/admin/review?tab=${t.key}`}
+          <Link key={t.key} href={`/${locale}/admin/review?tab=${t.key}`}
             style={{
               padding: "10px 16px", fontSize: 13,
               fontWeight: tab === t.key ? 600 : 400,
@@ -136,7 +137,7 @@ export default async function AdminReviewPage({
                 {t.badge}
               </span>
             )}
-          </a>
+          </Link>
         ))}
       </div>
 

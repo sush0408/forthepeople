@@ -711,7 +711,6 @@ export function AIInsightBanner({
       style={{
         background: "#F0F7FF",
         border: "1px solid #BFDBFE",
-        borderLeft: "4px solid #2563EB",
         borderRadius: 10,
         padding: "14px 16px",
         marginBottom: 20,

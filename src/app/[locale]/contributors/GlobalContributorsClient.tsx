@@ -6,7 +6,7 @@
 
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Instagram, Linkedin, Github, Twitter, ExternalLink, Lock } from "lucide-react";
@@ -139,16 +139,10 @@ export default function GlobalContributorsClient({ locale }: { locale: string })
     : "all";
   const validFilter = FILTERS.find((f) => f.key === initialFilter) ? initialFilter : "all";
   const [filter, setFilter] = useState(validFilter);
+  const [referenceNowMs] = useState(() => Date.now());
 
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(1);
-
-  // Reset pagination when filter changes
-  const prevFilter = useRef(filter);
-  if (prevFilter.current !== filter) {
-    prevFilter.current = filter;
-    if (page !== 1) setPage(1);
-  }
 
   const { data: leaderboard, isLoading: loadingLb } = useQuery<{ contributors: Contributor[] }>({
     queryKey: ["contributors-leaderboard"],
@@ -174,9 +168,9 @@ export default function GlobalContributorsClient({ locale }: { locale: string })
     staleTime: 120_000,
   });
 
-  const leaders = leaderboard?.contributors ?? [];
-  const subscribers = allData?.subscribers ?? [];
-  const oneTimers = allData?.oneTime ?? [];
+  const leaders = useMemo(() => leaderboard?.contributors ?? [], [leaderboard?.contributors]);
+  const subscribers = useMemo(() => allData?.subscribers ?? [], [allData?.subscribers]);
+  const oneTimers = useMemo(() => allData?.oneTime ?? [], [allData?.oneTime]);
   const subscribersTotal = allData?.subscribersTotal ?? subscribers.length;
   const oneTimeTotal = allData?.oneTimeTotal ?? oneTimers.length;
   const rankings = rankingsData?.rankings ?? [];
@@ -193,7 +187,14 @@ export default function GlobalContributorsClient({ locale }: { locale: string })
   const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
   const isRecentlyJoined = (createdAt: string) => {
     const t = Date.parse(createdAt);
-    return !Number.isNaN(t) && Date.now() - t < SEVEN_DAYS;
+    return !Number.isNaN(t) && referenceNowMs - t < SEVEN_DAYS;
+  };
+  const sponsorshipCoveragePct =
+    activeDistrictCount > 0 ? Math.min(100, Math.round((districtsSponsored / activeDistrictCount) * 100)) : 0;
+
+  const applyFilter = (nextFilter: (typeof FILTERS)[number]["key"]) => {
+    setFilter(nextFilter);
+    setPage(1);
   };
 
   // Apply filter
@@ -325,7 +326,7 @@ export default function GlobalContributorsClient({ locale }: { locale: string })
           {FILTERS.map((f) => (
             <button
               key={f.key}
-              onClick={() => setFilter(f.key)}
+              onClick={() => applyFilter(f.key)}
               style={{
                 padding: "6px 14px",
                 borderRadius: 20,
@@ -340,6 +341,37 @@ export default function GlobalContributorsClient({ locale }: { locale: string })
               {f.label}
             </button>
           ))}
+        </div>
+
+        <div
+          style={{
+            background: "#FFFFFF",
+            border: "1px solid #E8E8E4",
+            borderRadius: 12,
+            padding: "14px 16px",
+            marginBottom: 24,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: "#4B5563" }}>
+              Viewing <strong>{FILTERS.find((item) => item.key === filter)?.label ?? "All"}</strong>
+              {" · "}
+              <strong>{filteredSubscribers.length + filteredOneTimers.length}</strong> visible supporters on this page
+            </div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>
+              District sponsorship coverage: <strong>{districtsSponsored}</strong> / {activeDistrictCount}
+            </div>
+          </div>
+          <div style={{ height: 8, borderRadius: 999, background: "#E5E7EB", overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${sponsorshipCoveragePct}%`,
+                height: "100%",
+                background: "linear-gradient(90deg, #2563EB 0%, #16A34A 100%)",
+                transition: "width 300ms ease",
+              }}
+            />
+          </div>
         </div>
 
         {/* Leaderboard */}
@@ -363,9 +395,8 @@ export default function GlobalContributorsClient({ locale }: { locale: string })
                       key={c.id}
                       style={{
                         position: "relative",
-                        borderLeft: topBorder ? `4px solid ${topBorder}` : undefined,
+                        border: topBorder ? `1px solid ${topBorder}` : undefined,
                         borderRadius: 12,
-                        paddingLeft: topBorder ? 0 : undefined,
                       }}
                     >
                       <ContributorCard c={c} rank={i + 1} />

@@ -49,7 +49,6 @@ export default class ModuleErrorBoundary extends React.Component<Props, State> {
           padding: "20px 24px",
           background: "#FEF2F2",
           border: "1px solid #FECACA",
-          borderLeft: "4px solid #DC2626",
           borderRadius: 12,
           display: "flex",
           flexDirection: "column",

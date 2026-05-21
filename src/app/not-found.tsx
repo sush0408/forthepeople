@@ -5,9 +5,19 @@
  */
 
 "use client";
-import Link from "next/link";
+import LocaleLink from "@/components/common/LocaleLink";
+import { usePathname } from "next/navigation";
+import { getDictionary } from "@/dictionaries";
+import { translateDictionaryValue } from "@/i18n/I18nProvider";
+import { inferLocaleFromPathname } from "@/lib/locale-routing";
 
 export default function NotFound() {
+  const pathname = usePathname();
+  const locale = inferLocaleFromPathname(pathname);
+  const dictionary = getDictionary(locale);
+  const t = (path: string, fallback?: string, vars?: Record<string, string | number>) =>
+    translateDictionaryValue(dictionary, path, fallback, vars);
+
   return (
     <div
       style={{
@@ -42,14 +52,16 @@ export default function NotFound() {
           letterSpacing: "-0.3px",
         }}
       >
-        Page not found
+        {t("notFound.title", "Page not found")}
       </h1>
       <p style={{ fontSize: 14, color: "#6B6B6B", marginBottom: 32, maxWidth: 360 }}>
-        This page doesn&apos;t exist, or the district / module you&apos;re looking for
-        hasn&apos;t been added yet.
+        {t(
+          "notFound.body",
+          "This page doesn't exist, or the district / module you're looking for hasn't been added yet.",
+        )}
       </p>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-        <Link
+        <LocaleLink
           href="/"
           style={{
             padding: "10px 20px",
@@ -61,9 +73,9 @@ export default function NotFound() {
             textDecoration: "none",
           }}
         >
-          Go Home
-        </Link>
-        <Link
+          {t("notFound.home", "Go Home")}
+        </LocaleLink>
+        <LocaleLink
           href="/about"
           style={{
             padding: "10px 20px",
@@ -76,8 +88,8 @@ export default function NotFound() {
             textDecoration: "none",
           }}
         >
-          About ForThePeople
-        </Link>
+          {t("notFound.about", "About ForThePeople")}
+        </LocaleLink>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import SecurityExtras from "./SessionInfoCard";
@@ -37,6 +38,8 @@ function maskPhone(phone: string): string {
 }
 
 export default function SecurityPage() {
+  const params = useParams<{ locale: string }>();
+  const locale = (params?.locale as string) || "en";
   const [authInfo, setAuthInfo] = useState<AdminAuthInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -166,7 +169,7 @@ export default function SecurityPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 820, margin: "0 auto" }}>
-      <a href="/en/admin" style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", display: "inline-block", marginBottom: 12 }}>&larr; Back to Admin Dashboard</a>
+      <Link href={`/${locale}/admin`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", display: "inline-block", marginBottom: 12 }}>&larr; Back to Admin Dashboard</Link>
       {toast && (
         <div style={{
           position: "fixed", bottom: 24, right: 24, zIndex: 100,

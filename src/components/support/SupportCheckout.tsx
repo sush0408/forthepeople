@@ -8,11 +8,13 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Instagram, Linkedin, Github, Twitter, ExternalLink } from "lucide-react";
 import { INDIA_STATES } from "@/lib/constants/districts";
 import { validateSocialLink } from "@/lib/social-detect";
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import LocaleLink from "@/components/common/LocaleLink";
+import { inferLocaleFromPathname } from "@/lib/locale-routing";
 
 declare global {
   interface Window {
@@ -76,12 +78,9 @@ interface Props {
 }
 
 export default function SupportCheckout({ tier }: Props) {
-  let queryClient: QueryClient | null = null;
-  try {
-    queryClient = useQueryClient();
-  } catch {
-    queryClient = null;
-  }
+  const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const locale = inferLocaleFromPathname(pathname);
 
   function invalidateContributorQueries() {
     if (!queryClient) return;
@@ -93,7 +92,12 @@ export default function SupportCheckout({ tier }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [amount, setAmount] = useState(tier.defaultAmount);
   const [amountStr, setAmountStr] = useState(String(tier.defaultAmount));
-  const [step, setStep] = useState<Step>("idle");
+  const searchParams = useSearchParams();
+  const paramTier = searchParams.get("tier");
+  const paramState = searchParams.get("state");
+  const paramDistrict = searchParams.get("district");
+  const initialAutoOpen = paramTier === tier.tierKey;
+  const [step, setStep] = useState<Step>(initialAutoOpen ? "form" : "idle");
   const [scriptReady, setScriptReady] = useState(false);
 
   // Form fields
@@ -103,12 +107,6 @@ export default function SupportCheckout({ tier }: Props) {
   const [message, setMessage] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [socialLink, setSocialLink] = useState("");
-
-  // District/State selection
-  const searchParams = useSearchParams();
-  const paramTier = searchParams.get("tier");
-  const paramState = searchParams.get("state");
-  const paramDistrict = searchParams.get("district");
 
   const [selectedState, setSelectedState] = useState(paramTier === tier.tierKey && paramState ? paramState : "");
   const [selectedDistrict, setSelectedDistrict] = useState(paramTier === tier.tierKey && paramDistrict ? paramDistrict : "");
@@ -122,13 +120,12 @@ export default function SupportCheckout({ tier }: Props) {
 
   // Auto-open form if URL params match this tier, then scroll into view
   useEffect(() => {
-    if (paramTier === tier.tierKey) {
-      setStep("form");
+    if (initialAutoOpen) {
       setTimeout(() => {
         containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 300);
     }
-  }, [paramTier, tier.tierKey]);
+  }, [initialAutoOpen]);
 
   const socialDetect = useMemo(() => validateSocialLink(socialLink), [socialLink]);
   const detectedPlatform = socialDetect.platform;
@@ -354,8 +351,8 @@ export default function SupportCheckout({ tier }: Props) {
 
     // Build contributors page URL if district context available
     const contributorsUrl = selectedState && selectedDistrict
-      ? `/en/${selectedState}/${selectedDistrict}/contributors?just_paid=true`
-      : "/en";
+      ? `/${locale}/${selectedState}/${selectedDistrict}/contributors?just_paid=true`
+      : `/${locale}`;
 
     return (
       <div style={{ textAlign: "center", padding: "24px 16px" }}>
@@ -392,9 +389,9 @@ export default function SupportCheckout({ tier }: Props) {
             style={{ fontSize: 13, color: "#2563EB", textDecoration: "none", fontWeight: 600 }}>
             View Contributors →
           </Link>
-          <Link href="/en" style={{ fontSize: 13, color: "#9B9B9B", textDecoration: "none" }}>
+          <LocaleLink href="/" style={{ fontSize: 13, color: "#9B9B9B", textDecoration: "none" }}>
             Back to Homepage
-          </Link>
+          </LocaleLink>
         </div>
       </div>
     );

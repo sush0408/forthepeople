@@ -164,7 +164,7 @@ export default function SentryErrorsSection() {
                 key={issue.id}
                 style={{
                   ...card,
-                  borderLeft: `4px solid ${c.border}`,
+                  borderColor: c.border,
                   padding: 10,
                 }}
               >

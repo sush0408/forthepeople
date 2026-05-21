@@ -46,7 +46,7 @@ function top3Alphabetical(religion: Record<string, number> | null): Array<{
 
 export default function PopulationSnippet({ district, state, base }: Props) {
   const { data } = useQuery<PopulationProfileResponse>({
-    queryKey: ["district", district, "population-profile", "snippet"],
+    queryKey: ["district", state, district, "population-profile", "snippet"],
     queryFn: () =>
       fetch(
         `/api/data/population/profile?district=${encodeURIComponent(district)}&state=${encodeURIComponent(state)}`,

@@ -9,8 +9,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, Scale, Vote } from "lucide-react";
 import { SIDEBAR_MODULES, getTieredModules, getOrderedSlugs } from "@/lib/constants/sidebar-modules";
+import { useI18n } from "@/i18n/I18nProvider";
+import { withLocalePath } from "@/lib/locale-routing";
 
 interface SidebarProps {
   locale: string;
@@ -32,6 +34,7 @@ const MODULE_MAP = Object.fromEntries(SIDEBAR_MODULES.map((m) => [m.slug, m]));
 export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { t } = useI18n();
 
   const baseUrl = `/${locale}/${stateSlug}/${districtSlug}`;
   const pathParts = pathname.split("/").filter(Boolean);
@@ -48,7 +51,7 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
       <Link
         key={slug}
         href={href}
-        title={collapsed ? mod.label : undefined}
+        title={collapsed ? t(`modules.${slug}`, mod.label) : undefined}
         style={{
           display: "flex",
           alignItems: "center",
@@ -56,7 +59,6 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
           padding: collapsed ? "8px 14px" : "6px 12px",
           textDecoration: "none",
           background: isActive ? "#EFF6FF" : "transparent",
-          borderLeft: isActive ? "3px solid #2563EB" : "3px solid transparent",
           color: isActive ? "#2563EB" : "#6B6B6B",
           fontSize: 13,
           fontWeight: isActive ? 600 : 400,
@@ -76,14 +78,12 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
           }
         }}
       >
-        {collapsed ? (
-          <Icon size={15} style={{ flexShrink: 0, color: isActive ? "#2563EB" : "#9B9B9B" }} />
-        ) : (
-          <>
-            <span style={{ fontSize: 14, flexShrink: 0, lineHeight: 1 }}>{mod.emoji}</span>
-            <span style={{ flex: 1, lineHeight: 1.3 }}>{mod.label}</span>
-          </>
-        )}
+        <Icon
+          size={collapsed ? 15 : 16}
+          strokeWidth={1.9}
+          style={{ flexShrink: 0, color: isActive ? "#2563EB" : "#8A8A84" }}
+        />
+        {!collapsed && <span style={{ flex: 1, lineHeight: 1.3 }}>{t(`modules.${slug}`, mod.label)}</span>}
       </Link>
     );
   }
@@ -119,7 +119,7 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
       >
         <button
           onClick={() => setCollapsed((v) => !v)}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? t("sidebar.expand", "Expand sidebar") : t("sidebar.collapse", "Collapse sidebar")}
           style={{
             display: "flex",
             alignItems: "center",
@@ -146,24 +146,24 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
           <div style={{ borderTop: "1px solid #E8E8E4", marginTop: 4 }}>
             <Link
               href={`/${locale}/compare?a=${districtSlug}`}
-              title="Compare Districts"
+              title={t("sidebar.compare", "Compare Districts")}
               style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", textDecoration: "none", color: "#6B6B6B" }}
             >
-              <span style={{ fontSize: 14 }}>⚖️</span>
+              <Scale size={15} strokeWidth={1.9} />
             </Link>
             <Link
-              href="/support"
-              title="Support This Project"
+              href={withLocalePath(locale, "/support")}
+              title={t("sidebar.support", "Support This Project")}
               style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", textDecoration: "none", color: "#DC2626" }}
             >
-              <span style={{ fontSize: 14 }}>❤️</span>
+              <Heart size={15} strokeWidth={1.9} />
             </Link>
             <Link
-              href="/en/features"
-              title="Vote on Features"
+              href={withLocalePath(locale, "/features")}
+              title={t("sidebar.vote", "Vote on Features")}
               style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", textDecoration: "none", color: "#7C3AED" }}
             >
-              <span style={{ fontSize: 14 }}>🗳️</span>
+              <Vote size={15} strokeWidth={1.9} />
             </Link>
             <div style={{ height: 8 }} />
           </div>
@@ -186,7 +186,7 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
                   color: "#C0C0BA",
                 }}
               >
-                {cat.label}
+                {t(`sidebar.tiers.${cat.label}`, cat.label)}
               </div>
               {cat.slugs.map(renderLink)}
             </div>
@@ -200,7 +200,6 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
               display: "flex", alignItems: "center", gap: 8,
               padding: "6px 12px", textDecoration: "none",
               color: "#6B6B6B", fontSize: 13,
-              borderLeft: "3px solid transparent",
               borderRadius: "0 6px 6px 0",
             }}
             onMouseEnter={(e) => {
@@ -212,16 +211,15 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
               (e.currentTarget as HTMLElement).style.color = "#6B6B6B";
             }}
           >
-            <span style={{ fontSize: 14, flexShrink: 0 }}>⚖️</span>
-            <span>Compare Districts</span>
+            <Scale size={16} strokeWidth={1.9} style={{ flexShrink: 0 }} />
+            <span>{t("sidebar.compare", "Compare Districts")}</span>
           </Link>
           <Link
-            href="/support"
+            href={withLocalePath(locale, "/support")}
             style={{
               display: "flex", alignItems: "center", gap: 8,
               padding: "6px 12px", textDecoration: "none",
               color: "#DC2626", fontSize: 13, fontWeight: 500,
-              borderLeft: "3px solid transparent",
               borderRadius: "0 6px 6px 0",
             }}
             onMouseEnter={(e) => {
@@ -231,16 +229,15 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
               (e.currentTarget as HTMLElement).style.background = "transparent";
             }}
           >
-            <span style={{ fontSize: 14, flexShrink: 0 }}>❤️</span>
-            <span>Support This Project</span>
+            <Heart size={16} strokeWidth={1.9} style={{ flexShrink: 0 }} />
+            <span>{t("sidebar.support", "Support This Project")}</span>
           </Link>
           <Link
-            href="/en/features"
+            href={withLocalePath(locale, "/features")}
             style={{
               display: "flex", alignItems: "center", gap: 8,
               padding: "6px 12px", textDecoration: "none",
               color: "#7C3AED", fontSize: 13, fontWeight: 500,
-              borderLeft: "3px solid transparent",
               borderRadius: "0 6px 6px 0",
             }}
             onMouseEnter={(e) => {
@@ -250,8 +247,8 @@ export default function Sidebar({ locale, stateSlug, districtSlug }: SidebarProp
               (e.currentTarget as HTMLElement).style.background = "transparent";
             }}
           >
-            <span style={{ fontSize: 14, flexShrink: 0 }}>🗳️</span>
-            <span>Vote on Features</span>
+            <Vote size={16} strokeWidth={1.9} style={{ flexShrink: 0 }} />
+            <span>{t("sidebar.vote", "Vote on Features")}</span>
           </Link>
           <div style={{ height: 12 }} />
         </div>

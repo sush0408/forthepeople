@@ -11,20 +11,19 @@ import { getState } from "@/lib/constants/districts";
 import { Lock, ArrowRight, MapPin } from "lucide-react";
 import StateMapSection from "@/components/map/StateMapSection";
 import StateSponsorSection from "@/components/common/StateSponsorSection";
-
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://forthepeople.in";
+import { localizedSiteUrl } from "@/lib/site-metadata";
 
 type Props = { params: Promise<{ locale: string; state: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { state } = await params;
+  const { locale, state } = await params;
   const stateData = getState(state);
   if (!stateData) return {};
   return {
     title: `${stateData.name} Districts — Government Data | ForThePeople.in`,
     description: `Explore all ${stateData.districts.length} districts in ${stateData.name}. Free district-level government data: crop prices, water levels, schemes, budgets, and more.`,
-    alternates: { canonical: `${BASE_URL}/en/${state}` },
-    openGraph: { url: `${BASE_URL}/en/${state}` },
+    alternates: { canonical: localizedSiteUrl(locale, `/${state}`) },
+    openGraph: { url: localizedSiteUrl(locale, `/${state}`) },
   };
 }
 
@@ -106,6 +105,7 @@ export default async function StatePage({
             <StateMapSection
               locale={locale}
               stateSlug={stateSlug}
+              stateName={stateData.name}
               activeDistrictSlugs={stateData.districts.filter((d) => d.active).map((d) => d.slug)}
             />
           </div>
